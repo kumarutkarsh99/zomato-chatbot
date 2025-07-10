@@ -18,9 +18,12 @@ export class RestaurantController {
   }
 
   // 3. Search by name
-  @Get('search')
-  searchByName(@Query('name') name: string) {
-    return this.restaurantService.searchByName(name);
+ @Get('search')
+  searchByName(
+    @Query('name') name: string,
+    @Query('area') area: string
+  ) {
+    return this.restaurantService.searchByNameAndArea(name, area);
   }
 
   // 4. Filter by cuisine

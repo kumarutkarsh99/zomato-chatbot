@@ -16,11 +16,24 @@ export class RestaurantService {
   }
 
   // 3. Search restaurant by name
-  searchByName(name: string) {
-    return this.db.query(
-      `SELECT * FROM restaurants WHERE LOWER(name) LIKE LOWER($1)`,
-      [`%${name}%`],
-    );
+  searchByNameAndArea(name: string, area: string): Promise<number> {
+    return this.db
+      .query(
+        `
+        SELECT id
+        FROM restaurants
+        WHERE LOWER(name) LIKE LOWER($1)
+          AND LOWER(area) LIKE LOWER($2)
+        LIMIT 1
+        `,
+        [`%${name}%`, `%${area}%`],
+      )
+      .then(res => {
+        if (res.rows.length === 0) {
+          throw new Error(`No restaurant found for ${name} in ${area}`);
+        }
+        return res.rows[0].id;
+      });
   }
 
   // 4. Filter restaurants by cuisine
