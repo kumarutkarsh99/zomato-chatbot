@@ -1,114 +1,121 @@
-import { Injectable } from '@nestjs/common';
+// src/chatbot/chatbot.service.ts
+
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { RestaurantService } from '../restaurant/restaurant.service';
-import { MenusService } from 'src/menus/menus.service';
+import { MenusService } from '../menus/menus.service';
 
 @Injectable()
 export class ChatbotService {
-  constructor(private restaurantService: RestaurantService, private menusService: MenusService) {}
+  constructor(
+    private readonly restaurantService: RestaurantService,
+    private readonly menusService: MenusService,
+  ) {}
 
+  /** Dispatch incoming Dialogflow webhook to the right handler */
   async handleFulfillment(body: any) {
-    console.log('Received body from Dialogflow:', JSON.stringify(body, null, 2));
     const intent = body.queryResult.intent.displayName;
-
-    if (intent === 'SearchRestaurantsIntent') {
-      return this.handleSearchRestaurant(body);
-    }
-    if (intent === 'ViewMenuIntent'){
-      return this.handleViewMenu(body);
-    }
-
-    return { fulfillmentText: 'Intent not supported.' };
+    const handler = this.handlers[intent] ?? this.handleNotSupported;
+    return handler.call(this, body);
   }
 
-  async handleSearchRestaurant(body: any) {
-    const params = body.queryResult.parameters;
-    const area = params.Location;
-    const cuisine = params.Cuisine; 
+  /** Map of intent names → methods */
+  private handlers: Record<string, Function> = {
+    'Default Welcome Intent': this.handleWelcome,
+    'DineInIntent': this.handleDineIn,
+    'RestaurantForDine': this.handleRestaurantForDine,
+    'MenuForDine': this.handleMenuForDine,
+  };
 
-    const results = await this.restaurantService.filterAdvanced({
+  private handleNotSupported() {
+    return { fulfillmentText: 'Sorry, that intent is not supported.' };
+  }
+
+  /** Welcome message */
+  private handleWelcome(body: any) {
+    const session = body.session;
+    return {
+      fulfillmentText:
+        'Welcome to Zomato Chatbot! Type "Delivery" or "Dine‑in" to continue.',
+      outputContexts: [
+        { name: `${session}/contexts/awaiting_user_choice`, lifespanCount: 5 },
+      ],
+    };
+  }
+
+  /** User chose dine‑in */
+  private handleDineIn(body: any) {
+    const session = body.session;
+    return {
+      fulfillmentText: 'Great! Which cuisine and location?',
+      outputContexts: [
+        { name: `${session}/contexts/dine_in_context`, lifespanCount: 5 },
+      ],
+    };
+  }
+
+  /** List restaurants matching cuisine+location */
+  private async handleRestaurantForDine(body: any) {
+    const session = body.session;
+    const { cuisine = '', location = '' } = body.queryResult.parameters;
+
+    const list = await this.restaurantService.filterAdvanced({
       cuisine,
-      area,
+      area: location,
+      dineInOnly: true,
     });
 
-    if (results.rows.length === 0) {
-      return {
-        fulfillmentText: `No ${cuisine} restaurants found in ${area}.`,
-      };
+    if (!list.length) {
+      return { fulfillmentText: `No ${cuisine} restaurants found in ${location}.` };
     }
 
-    const names = results.rows.slice(0, 10).map(r => r.name).join(', ');
+    const names = list.slice(0, 10).map(r => r.name).join(', ');
     return {
-      fulfillmentText: `Here are some ${cuisine} restaurants in ${area}: ${names}. Which one?`,
+      fulfillmentText: `Here are some ${cuisine} restaurants in ${location}: ${names}. Which one?`,
       outputContexts: [
         {
-          name: `${body.session}/contexts/awaiting_restaurant`,
+          name: `${session}/contexts/dine_in_context`,
           lifespanCount: 5,
-          parameters: {
-            cuisine,
-            area,
-          }
-        }
-      ]
+          parameters: { cuisine, location },
+        },
+      ],
     };
   }
 
-  async handleViewMenu(body: any) {
-  const ctx = body.queryResult.outputContexts.find(c =>
-    c.name.endsWith('/contexts/awaiting_restaurant')
-  );
+  /** Show menu for the chosen restaurant */
+  private async handleMenuForDine(body: any) {
+    const session = body.session;
+    const dineCtx = body.queryResult.outputContexts.find(ctx =>
+      ctx.name.endsWith('/contexts/dine_in_context'),
+    );
 
-  if (!ctx) {
-    return { fulfillmentText: "Sorry, I couldn't determine which restaurant to look up." };
-  }
+    const { cuisine, location, restaurantname } = dineCtx.parameters;
+    const restaurantName = Array.isArray(restaurantname)
+      ? restaurantname[0]
+      : restaurantname;
+    if (!restaurantName) {
+      return { fulfillmentText: "Sorry, I didn't catch which restaurant." };
+    }
 
-  const cuisine: string = ctx.parameters.cuisine;
-  const area: string = ctx.parameters.area;
-  // Note: parameter key is "RestaurantName" (capital R & N)
-  const restaurantName: string = body.queryResult.parameters.RestaurantName;
+    const restaurantId = await this.restaurantService.searchByNameAndArea(
+      restaurantName,
+      location,
+    );
+    const items = await this.menusService.getByRestaurantId(restaurantId);
 
-  if (!restaurantName) {
-    return { fulfillmentText: "Sorry, I didn't catch which restaurant you meant." };
-  }
+    if (!items.length) {
+      return { fulfillmentText: `No menu items found for ${restaurantName}.` };
+    }
 
-  const restaurantId: number = await this.restaurantService.searchByNameAndArea(
-    restaurantName,
-    area
-  );
-
-  const results = await this.menusService.getByRestaurantId(restaurantId);
-
-  if (!results.rows.length) {
+    const list = items.slice(0, 10).map((i, idx) => `${idx + 1}. ${i.item_name}`).join('\n');
     return {
-      fulfillmentText: `No ${cuisine} menu items found for ${restaurantName}.`
+      fulfillmentText: `Here are some items in ${restaurantName}:\n${list}\nWhat would you like?`,
+      outputContexts: [
+        {
+          name: `${session}/contexts/dine_in_context`,
+          lifespanCount: 5,
+          parameters: { cuisine, location, restaurantname, restaurantId },
+        },
+      ],
     };
   }
-
-  const itemsList = results.rows
-    .slice(0, 10)
-    .map((r, i) => `${i + 1}. ${r.item_name}`)
-    .join('\n');
-
-  const fulfillmentText = [
-    `Here are some items in ${restaurantName}'s menu:`,
-    itemsList,
-    `Which items would you like to proceed with?`
-  ].join('\n');
-
-  return {
-    fulfillmentText,
-    outputContexts: [
-      {
-        name: `${body.session}/contexts/awaiting_menu_selection`,
-        lifespanCount: 5,
-        parameters: {
-          restaurantName,
-          cuisine,
-          area
-        }
-      }
-    ]
-  };
-}
-
-
 }

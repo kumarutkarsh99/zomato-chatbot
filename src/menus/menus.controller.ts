@@ -1,96 +1,76 @@
-import { Controller, Get, Param, Query, Post, Body, Patch } from '@nestjs/common';
+// src/menus/menus.controller.ts
+
+import { Controller, Get, Param, Query, NotFoundException, Post, Body } from '@nestjs/common';
 import { MenusService } from './menus.service';
 
 @Controller('menus')
 export class MenusController {
-  constructor(private readonly menuService: MenusService) {}
+  constructor(private readonly menusService: MenusService) {}
 
-  // 1. Get all menus
+  /** GET /menus */
   @Get()
-  getAll() {
-    return this.menuService.getAll();
+  async getAll() {
+    return this.menusService.getAll();
   }
 
-  // 2. Get by menu ID
-  @Get('id/:id')
-  getById(@Param('id') id: number) {
-    return this.menuService.getById(id);
+  /** GET /menus/:id */
+  @Get(':id')
+  async getById(@Param('id') id: string) {
+    return this.menusService.getById(+id);
   }
 
-  // 3. Get by restaurant ID
-  @Get('restaurant/:restaurantId')
-  getByRestaurantId(@Param('restaurantId') restaurantId: number) {
-    return this.menuService.getByRestaurantId(restaurantId);
+  /** GET /menus/restaurant/:rid */
+  @Get('restaurant/:rid')
+  async getByRestaurantId(@Param('rid') rid: string) {
+    return this.menusService.getByRestaurantId(+rid);
   }
 
-  // 4. Veg and Non-Veg
-  @Get('restaurant/:restaurantId/veg')
-  getVegItems(@Param('restaurantId') restaurantId: number) {
-    return this.menuService.getVegItems(restaurantId);
-  }
-
-  @Get('restaurant/:restaurantId/nonveg')
-  getNonVegItems(@Param('restaurantId') restaurantId: number) {
-    return this.menuService.getNonVegItems(restaurantId);
-  }
-
-  // 5. Filter by category
-  @Get('restaurant/:restaurantId/category')
-  getByCategory(
-    @Param('restaurantId') restaurantId: number,
-    @Query('name') category: string,
+  /** GET /menus/restaurant/:rid/category?category=... */
+  @Get('restaurant/:rid/category')
+  async getByCategory(
+    @Param('rid') rid: string,
+    @Query('category') category: string,
   ) {
-    return this.menuService.getByCategory(restaurantId, category);
+    return this.menusService.getByCategory(+rid, category);
   }
 
-  // 6. Search menu items by name
-  @Get('restaurant/:restaurantId/search')
-  searchItemsByName(
-    @Param('restaurantId') restaurantId: number,
+  /** GET /menus/restaurant/:rid/search?keyword=... */
+  @Get('restaurant/:rid/search')
+  async searchItemsByName(
+    @Param('rid') rid: string,
     @Query('keyword') keyword: string,
   ) {
-    return this.menuService.searchItemsByName(restaurantId, keyword);
+    return this.menusService.searchItemsByName(+rid, keyword);
   }
 
-  // 7. Filter by price range
-  @Get('restaurant/:restaurantId/price-range')
-  getItemsByPriceRange(
-    @Param('restaurantId') restaurantId: number,
-    @Query('min') min: number,
-    @Query('max') max: number,
+  /** GET /menus/restaurant/:rid/price?min=0&max=100 */
+  @Get('restaurant/:rid/price')
+  async getByPriceRange(
+    @Param('rid') rid: string,
+    @Query('min') min: string,
+    @Query('max') max: string,
   ) {
-    return this.menuService.getItemsByPriceRange(restaurantId, min, max);
+    return this.menusService.getItemsByPriceRange(+rid, +min, +max);
   }
 
-  // 8. Get all categories
-  @Get('restaurant/:restaurantId/categories')
-  getCategoriesByRestaurant(@Param('restaurantId') restaurantId: number) {
-    return this.menuService.getCategoriesByRestaurant(restaurantId);
+  /** GET /menus/restaurant/:rid/categories */
+  @Get('restaurant/:rid/categories')
+  async getCategories(@Param('rid') rid: string) {
+    return this.menusService.getCategoriesByRestaurant(+rid);
   }
 
-  // 9. Add a new menu item (Admin)
-  @Post('add')
-  addMenuItem(@Body() body: {
-    restaurant_id: number;
-    item_name: string;
-    price: number;
-    is_veg: boolean;
-    category: string;
-  }) {
-    return this.menuService.addMenuItem(body);
+  /** POST /menus */
+  @Post()
+  async addMenuItem(
+    @Body()
+    data: {
+      restaurant_id: number;
+      item_name: string;
+      price: number;
+      is_veg: boolean;
+      category: string;
+    },
+  ) {
+    return this.menusService.addMenuItem(data);
   }
-
-  // 10. Update existing menu item (Admin)
-  // @Patch('update/:id')
-  // updateMenuItem(
-  //   @Param('id') id: number,
-  //   @Body() body: Partial<{
-  //     item_name: string;
-  //     price: number;
-  //     is_veg: boolean;
-  //     category: string;
-  //   }>,
-  // ) {
-  //   return this.menuService.updateMenuItem(id, body);
-  // }
 }

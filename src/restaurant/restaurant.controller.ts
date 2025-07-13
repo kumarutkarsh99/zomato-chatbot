@@ -1,96 +1,60 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+// src/restaurant/restaurant.controller.ts
+
+import { Controller, Get, Param, Query, NotFoundException } from '@nestjs/common';
 import { RestaurantService } from './restaurant.service';
 
 @Controller('restaurants')
 export class RestaurantController {
   constructor(private readonly restaurantService: RestaurantService) {}
 
-  // 1. Get all restaurants
+  /** GET /restaurants */
   @Get()
-  getAll() {
+  async getAll() {
     return this.restaurantService.getAll();
   }
 
-  // 2. Get by ID
-  @Get('id/:id')
-  getById(@Param('id') id: number) {
-    return this.restaurantService.getById(id);
+  /** GET /restaurants/:id */
+  @Get(':id')
+  async getById(@Param('id') id: string) {
+    const restaurant = await this.restaurantService.getById(+id);
+    if (!restaurant) throw new NotFoundException(`Restaurant ${id} not found`);
+    return restaurant;
   }
 
-  // 3. Search by name
- @Get('search')
-  searchByName(
+  /**
+   * GET /restaurants/search?name=...&area=...
+   * Returns one restaurant ID matching name+area
+   */
+  @Get('search')
+  async searchByNameAndArea(
     @Query('name') name: string,
-    @Query('area') area: string
+    @Query('area') area: string,
   ) {
-    return this.restaurantService.searchByNameAndArea(name, area);
+    const id = await this.restaurantService.searchByNameAndArea(name, area);
+    return { id };
   }
 
-  // 4. Filter by cuisine
-  @Get('cuisine')
-  filterByCuisine(@Query('type') cuisine: string) {
-    return this.restaurantService.filterByCuisine(cuisine);
-  }
-
-  // 5. Filter by area
-  @Get('area')
-  filterByArea(@Query('name') area: string) {
-    return this.restaurantService.filterByArea(area);
-  }
-
-  // 6. Home delivery available
-  @Get('delivery')
-  getDeliveryAvailable() {
-    return this.restaurantService.getDeliveryAvailable();
-  }
-
-  // 7. Dine-in available
-  @Get('dinein')
-  getDineInAvailable() {
-    return this.restaurantService.getDineInAvailable();
-  }
-
-  // 8. Vegetarian-only
-  @Get('veg')
-  getVegOnly() {
-    return this.restaurantService.getVegOnly();
-  }
-
-  // 9. Top rated
-  @Get('top-rated')
-  getTopRated(@Query('limit') limit: number = 10) {
-    return this.restaurantService.getTopRated(limit);
-  }
-
-  // 10. Most reviewed
-  @Get('most-reviewed')
-  getMostReviewed(@Query('limit') limit: number = 10) {
-    return this.restaurantService.getMostReviewed(limit);
-  }
-
-  // 11. Sort by cost
-  @Get('cost')
-  getByCost(@Query('order') order: 'asc' | 'desc' = 'asc') {
-    return this.restaurantService.getByCost(order);
-  }
-
-  // 12. Advanced filter
+  /**
+   * GET /restaurants/filter
+   * Supports query params: cuisine, area, minRating, maxCost, vegOnly, dineInOnly
+   */
   @Get('filter')
-  filterAdvanced(
+  async filterAdvanced(
     @Query('cuisine') cuisine?: string,
     @Query('area') area?: string,
-    @Query('minRating') minRating?: number,
-    @Query('maxCost') maxCost?: number,
-    @Query('vegOnly') vegOnly?: boolean,
-    @Query('dineInOnly') dineInOnly?: boolean,
+    @Query('minRating') minRating?: string,
+    @Query('maxCost') maxCost?: string,
+    @Query('vegOnly') vegOnly?: string,
+    @Query('dineInOnly') dineInOnly?: string,
   ) {
-    return this.restaurantService.filterAdvanced({
+    const list = await this.restaurantService.filterAdvanced({
       cuisine,
       area,
-      minRating,
-      maxCost,
-      vegOnly,
-      dineInOnly,
+      minRating: minRating ? +minRating : undefined,
+      maxCost: maxCost ? +maxCost : undefined,
+      vegOnly: vegOnly === 'true',
+      dineInOnly: dineInOnly === 'true',
     });
+    return list;
   }
 }
