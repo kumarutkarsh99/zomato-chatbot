@@ -5,9 +5,6 @@ import { DatabaseService } from '../database/database.service';
 export class DineinService {
   constructor(private db: DatabaseService) {}
 
-  /**
-   * 1. Book a table
-   */
   async bookTable(data: {
     user_id: number;
     restaurant_id: number;
@@ -32,6 +29,19 @@ export class DineinService {
     const result = await this.db.query(query, values);
     return result.rows[0]; // return inserted booking
   }
+
+  async getBookingById(bookingId: number) {
+  const result = await this.db.query(
+    `SELECT status FROM dinein_bookings WHERE id = $1`,
+    [bookingId],
+  );
+
+  if (!result.rows || result.rows.length === 0) {
+    return null; 
+  }
+
+  return result.rows[0].status;
+}
 
   /**
    * 2. View bookings for a user

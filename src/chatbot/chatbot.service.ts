@@ -23,14 +23,16 @@ export class ChatbotService {
 
   /** Map of intent names → methods */
   private handlers: Record<string, Function> = {
-    'Default Welcome Intent': this.handleWelcome,
-    'DineInIntent': this.handleDineIn,
-    'RestaurantForDine': this.handleRestaurantForDine,
-    'MenuForDine': this.handleMenuForDine,
-    'RestaurantDetailsIntent': this.handleRestaurantDetails,
-    'BookDineinIntent': this.handleBookDineinPrompt,
-    'BookingConfirmationIntent': this.handleConfirmBookingDetails,
-    'BookedIntent': this.handleDineInBooking,
+    'A - Default Welcome - context:  - awaiting_main_choice': this.handleWelcome,
+    'A2 - DineIn - context: awaiting_main_choice - dine_in': this.handleDineIn,
+    'A3 - RestaurantForDine - context: dine_in - dine_in': this.handleRestaurantForDine,
+    'A4 - MenuForDine - context: dine_in - await_details': this.handleMenuForDine,
+    'A5 - RestaurantDetails - context: await_details - await_details': this.handleRestaurantDetails,
+    'A6 - BookDinein - context: await_details - await_details, await_booking_info': this.handleBookDineinPrompt,
+    'A7 - BookingConfirm - context: await_booking_info - await_confirm_booking': this.handleConfirmBookingDetails,
+    'A8 - Booked - context: await_confirm_booking -': this.handleDineInBooking,
+    'C3 - track_response - context: order -': this.handleTrackDineinOrder,
+    'D3 - Dine_in_status - context : dine_in_id - dine_in_id': this.handleTrackDineinOrder,
   };
 
   private handleNotSupported() {
@@ -320,4 +322,28 @@ Would you like to confirm the booking?`,
           outputContexts: [],
     };
   }
+
+async handleTrackDineinOrder(body: any) {
+  const ctx = body.queryResult.outputContexts.find(c =>
+    c.name.endsWith('/contexts/awaiting_dine_in_id'),
+  );
+
+  if (!ctx || !ctx.parameters.number) {
+    return {
+      fulfillmentText: "I couldn't find your dine In ID. Can you provide it again?",
+    };
+  }
+
+  const { number } = ctx.parameters;
+
+  const status = await this.dineinService.getBookingById(number);
+
+ return {
+  fulfillmentText: status == null
+    ? `Order #${number} not found. Do you wish to track any other order? Enter order id.`
+    : `Order #${number} is currently: ${status}. Do you wish to track any other order? Enter order id.`,
+  outputContexts: body.queryResult.outputContexts,
+};
+
+}
 }
