@@ -55,6 +55,7 @@ export class RestaurantService {
     maxCost?: number;
     vegOnly?: boolean;
     dineInOnly?: boolean;
+    homeDelivery?: boolean;
   }) {
     const clauses: string[] = [];
     const params: any[] = [];
@@ -81,6 +82,9 @@ export class RestaurantService {
     }
     if (opts.dineInOnly) {
       clauses.push('is_indoor_seating = true');
+    }
+    if (opts.homeDelivery) {
+      clauses.push('is_home_delivery = true');
     }
 
     const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';

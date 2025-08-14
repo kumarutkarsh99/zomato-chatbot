@@ -1,54 +1,85 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 
+export interface MenuItemData {
+  dishname: string;
+  quantity: number;
+  price: number;
+  menuId: number;
+}
+
 @Injectable()
 export class OrderService {
   constructor(private readonly db: DatabaseService) {}
 
-  // 1. Place an order
+  // 1. Place order with fuzzy name matching
   async placeOrder(
-    userId: number,
-    restaurantId: number,
-    items: { menu_id: number; quantity: number }[],
+    user_id: number,
+    restaurant_id: number,
+    items: { dishname: string; quantity: number }[],
   ) {
-    let total = 0;
-    for (const it of items) {
-      const res = await this.db.query('SELECT price FROM menus WHERE id = $1', [it.menu_id]);
-      const price = res.rows[0]?.price || 0;
-      total += price * it.quantity;
+    const menuData: MenuItemData[] = [];
+
+    for (const item of items) {
+      const res = await this.db.query(
+        `SELECT id, item_name, price
+         FROM menus
+         WHERE restaurant_id = $1
+           AND item_name ILIKE '%' || $2 || '%'
+         LIMIT 1`,
+        [restaurant_id, item.dishname],
+      );
+
+      if (res.rows.length === 0) {
+        throw new Error(`Dish "${item.dishname}" not found`);
+      }
+
+      menuData.push({
+        dishname: res.rows[0].item_name,
+        quantity: item.quantity,
+        price: res.rows[0].price,
+        menuId: res.rows[0].id,
+      });
     }
 
+    const totalPrice = menuData.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+
+    // Save the order
     const orderRes = await this.db.query(
-      `INSERT INTO orders (user_id, restaurant_id, total_amount, status, created_at)
-       VALUES ($1, $2, $3, 'pending', NOW()) RETURNING id`,
-      [userId, restaurantId, total],
+      `INSERT INTO orders (user_id, restaurant_id, total_amount)
+       VALUES ($1, $2, $3)
+       RETURNING id`,
+      [user_id, restaurant_id, totalPrice],
     );
     const orderId = orderRes.rows[0].id;
 
-    for (const it of items) {
-      const res = await this.db.query('SELECT price FROM menus WHERE id = $1', [it.menu_id]);
-      const price = res.rows[0]?.price || 0;
+    for (const item of menuData) {
       await this.db.query(
         `INSERT INTO order_items (order_id, menu_id, quantity, price)
          VALUES ($1, $2, $3, $4)`,
-        [orderId, it.menu_id, it.quantity, price],
+        [orderId, item.menuId, item.quantity, item.price],
       );
     }
 
-    return { orderId, total };
+    return { orderId, totalPrice, items: menuData };
   }
 
   // 2. Track order
   async trackOrder(orderId: number) {
-    const orderRes = await this.db.query('SELECT * FROM orders WHERE id = $1', [orderId]);
+    const orderRes = await this.db.query(
+      'SELECT * FROM orders WHERE id = $1',
+      [orderId],
+    );
     const order = orderRes.rows[0];
     if (!order) return null;
 
     const itemsRes = await this.db.query(
-      `SELECT oi.menu_id, m.item_name, oi.quantity, oi.price
-       FROM order_items oi
-       JOIN menus m ON m.id = oi.menu_id
-       WHERE oi.order_id = $1`,
+      `SELECT dishname, quantity, price
+       FROM order_items
+       WHERE order_id = $1`,
       [orderId],
     );
 
@@ -57,20 +88,29 @@ export class OrderService {
 
   // 3. Cancel order
   async cancelOrder(orderId: number) {
-    const res = await this.db.query('SELECT status FROM orders WHERE id = $1', [orderId]);
+    const res = await this.db.query(
+      'SELECT status FROM orders WHERE id = $1',
+      [orderId],
+    );
     const status = res.rows[0]?.status;
 
     if (!status || ['delivered', 'cancelled'].includes(status)) {
       return { success: false, message: 'Cannot cancel this order.' };
     }
 
-    await this.db.query(`UPDATE orders SET status = 'cancelled' WHERE id = $1`, [orderId]);
+    await this.db.query(
+      `UPDATE orders SET status = 'cancelled' WHERE id = $1`,
+      [orderId],
+    );
     return { success: true, message: 'Order cancelled.' };
   }
 
   // 4. Update order status (admin/restaurant)
   async updateStatus(orderId: number, newStatus: string) {
-    await this.db.query(`UPDATE orders SET status = $1 WHERE id = $2`, [newStatus, orderId]);
+    await this.db.query(
+      `UPDATE orders SET status = $1 WHERE id = $2`,
+      [newStatus, orderId],
+    );
     return { success: true, message: `Status updated to ${newStatus}` };
   }
 
@@ -97,7 +137,7 @@ export class OrderService {
     const res = await this.db.query(
       `SELECT
          COUNT(*) AS total_orders,
-         COALESCE(SUM(total_amount), 0) AS total_revenue
+         COALESCE(SUM(total_price), 0) AS total_revenue
        FROM orders
        WHERE restaurant_id = $1 AND created_at::date = CURRENT_DATE`,
       [restaurantId],

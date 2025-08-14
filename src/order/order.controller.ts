@@ -7,6 +7,7 @@ import {
   Patch,
 } from '@nestjs/common';
 import { OrderService } from './order.service';
+import { MenuItemData } from './order.service';
 
 @Controller('orders')
 export class OrderController {
@@ -14,15 +15,19 @@ export class OrderController {
 
   // 1. Place new order
   @Post()
-  placeOrder(
+  async placeOrder(
     @Body()
     body: {
       user_id: number;
       restaurant_id: number;
-      items: { menu_id: number; quantity: number }[];
+      items: { dishname: string; quantity: number }[];
     },
   ) {
-    return this.orderService.placeOrder(body.user_id, body.restaurant_id, body.items);
+    return this.orderService.placeOrder(
+      body.user_id,
+      body.restaurant_id,
+      body.items,
+    );
   }
 
   // 2. Track order by ID
