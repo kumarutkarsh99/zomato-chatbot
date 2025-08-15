@@ -15,6 +15,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       user: 'postgres',
       password: process.env.SUPABASE_PASS,
       ssl: { rejectUnauthorized: false },
+      family: 4,
     });
     await this.client.connect();
     console.log('PostgreSQL (Supabase) Connected');
