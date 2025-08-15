@@ -9,7 +9,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.client = new Client({
-      host: 'db.zmsjlaenynhkslxbpbjq.supabase.co',
+      host: process.env.SUPABASE_HOST,
       port: 5432,
       database: 'postgres',
       user: 'postgres',
