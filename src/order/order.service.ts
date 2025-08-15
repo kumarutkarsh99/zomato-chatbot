@@ -69,22 +69,38 @@ export class OrderService {
 
   // 2. Track order
   async trackOrder(orderId: number) {
-    const orderRes = await this.db.query(
-      'SELECT * FROM orders WHERE id = $1',
-      [orderId],
-    );
-    const order = orderRes.rows[0];
-    if (!order) return null;
+  // Fetch the order
+  const orderRes = await this.db.query(
+    'SELECT id, user_id, restaurant_id, total_amount, status FROM orders WHERE id = $1',
+    [orderId],
+  );
+  const order = orderRes.rows[0];
+  if (!order) return null;
 
-    const itemsRes = await this.db.query(
-      `SELECT dishname, quantity, price
-       FROM order_items
-       WHERE order_id = $1`,
-      [orderId],
-    );
+  // Fetch the order items along with menu item names
+  const itemsRes = await this.db.query(
+    `SELECT oi.quantity, oi.price, m.item_name
+     FROM order_items oi
+     JOIN menus m ON oi.menu_id = m.id
+     WHERE oi.order_id = $1`,
+    [orderId],
+  );
 
-    return { ...order, items: itemsRes.rows };
-  }
+  // Return order summary
+  return {
+    orderId: order.id,
+    userId: order.user_id,
+    restaurantId: order.restaurant_id,
+    totalAmount: order.total_amount,
+    status: order.status,
+    items: itemsRes.rows.map(r => ({
+      name: r.item_name,
+      quantity: r.quantity,
+      price: r.price,
+    })),
+  };
+}
+
 
   // 3. Cancel order
   async cancelOrder(orderId: number) {
