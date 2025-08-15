@@ -5,10 +5,8 @@ import { DatabaseService } from './database/database.service';
 import { RestaurantModule } from './restaurant/restaurant.module';
 import { MenusModule } from './menus/menus.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
-import { SupabaseModule } from './supabase/supabase.module';
-
 @Module({
-  imports: [RestaurantModule, MenusModule, ChatbotModule, SupabaseModule],
+  imports: [RestaurantModule, MenusModule, ChatbotModule],
   controllers: [AppController],
   providers: [AppService, DatabaseService],
   exports: [DatabaseService],
