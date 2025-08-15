@@ -284,75 +284,108 @@ Would you like to confirm the booking?`,
 }
 
   async handleDineInBooking(body: any) {
-    const session = body.session;
+  const session = body.session;
+  const ctx = body.queryResult.outputContexts.find(c =>
+    c.name.endsWith('/contexts/await_confirm_booking'),
+  );
+
+  if (!ctx || !ctx.parameters.restaurantId) {
+    return {
+      fulfillmentText: "Sorry, I couldn't confirm the restaurant info for your booking.",
+    };
+  }
+
+  const { restaurantname, restaurantId, time, people } = ctx.parameters;
+
+  function parseTimeInput(time: string) {
+  if (!time) return "00:00";
+
+  const isoMatch = time.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?/);
+  if (isoMatch) {
+    const d = new Date(time);
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  }
+
+  const match = time.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+  if (!match) return "00:00"; 
+  let hour = parseInt(match[1]);
+  const minute = match[2] ? parseInt(match[2]) : 0;
+  const period = match[3];
+
+  if (period === "pm" && hour < 12) hour += 12;
+  if (period === "am" && hour === 12) hour = 0;
+
+  return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+}
+
+  const booking_time = parseTimeInput(time);
+
+  const now = new Date();
+  const istOffset = 5.5 * 60; 
+  const istDate = new Date(now.getTime() + istOffset * 60 * 1000);
+  const booking_date = istDate.toISOString().split('T')[0]; 
+
+  console.log('Raw time:', time);
+  console.log('Booking date:', booking_date);
+  console.log('Booking time:', booking_time);
+
+  const booking = await this.dineinService.bookTable({
+    user_id: 1,
+    restaurant_id: restaurantId,
+    booking_date,
+    booking_time,
+    people_count: people,
+  });
+
+  const booking_id = booking.id || Math.floor(100000 + Math.random() * 900000);
+
+  return {
+    fulfillmentText: `Booking confirmed!
+• Restaurant: ${restaurantname}
+• Time: ${booking_time}
+• People: ${people}
+• Booking ID: ${booking_id}
+
+Enjoy your meal!`,
+    outputContexts: [],
+  };
+}
+
+async handleTrackDineinOrder(body: any) {
+  try {
     const ctx = body.queryResult.outputContexts.find(c =>
-      c.name.endsWith('/contexts/await_confirm_booking'),
+      c.name.endsWith('/contexts/awaiting_dine_in_id'),
     );
 
-    if (!ctx || !ctx.parameters.restaurantId) {
+    if (!ctx || !ctx.parameters.number) {
       return {
-        fulfillmentText: "Sorry, I couldn't confirm the restaurant info for your booking.",
+        fulfillmentText: "I couldn't find your dine In ID. Can you provide it again?",
       };
     }
 
-    const {
-      restaurantname,
-      restaurantId,
-      time,          
-      people,
-    } = ctx.parameters;
+    const { number } = ctx.parameters;
+    const booking = await this.dineinService.getBookingById(number);
+    if (!booking) {
+      return { fulfillmentText: `Booking #${number} not found.` };
+    }
 
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    const istDate = new Date(Date.now() + istOffset);
-    const booking_date = istDate.toISOString().split(' ')[0];
+    const { id, restaurant_id, booking_time, people_count, status } = booking;
 
-    const booking_time = time?.slice(0, 5);
-
-    const booking = await this.dineinService.bookTable({
-      user_id: 1, 
-      restaurant_id: restaurantId,
-      booking_date,
-      booking_time,
-      people_count: people,
-    });
-
-    const booking_id = booking.id || Math.floor(100000 + Math.random() * 900000); 
+    const restaurant = await this.restaurantService.getById(restaurant_id);
+    const restaurantName = restaurant?.name || 'Unknown';
 
     return {
-      fulfillmentText: `Booking confirmed!
-      • Restaurant: ${restaurantname}
-      • Time: ${booking_time}
-      • People: ${people}
-      • Booking ID: ${booking_id}
-
-      Enjoy your meal!`,
-          outputContexts: [],
+      fulfillmentText: status == null
+        ? `Booking #${number} not found.`
+        : `Booking #${number} info: Restaurant: ${restaurantName} Time: ${booking_time} People: ${people_count} Status: ${status}.`,
+      outputContexts: body.queryResult.outputContexts,
     };
+  } catch (err) {
+    console.error('Error in handleTrackDineinOrder:', err);
+    return { fulfillmentText: 'Sorry, I could not retrieve your booking. Please try again.' };
   }
-
-async handleTrackDineinOrder(body: any) {
-  const ctx = body.queryResult.outputContexts.find(c =>
-    c.name.endsWith('/contexts/awaiting_dine_in_id'),
-  );
-
-  if (!ctx || !ctx.parameters.number) {
-    return {
-      fulfillmentText: "I couldn't find your dine In ID. Can you provide it again?",
-    };
-  }
-
-  const { number } = ctx.parameters;
-
-  const status = await this.dineinService.getBookingById(number);
-
- return {
-  fulfillmentText: status == null
-    ? `Order #${number} not found. Do you wish to track any other order? Enter order id.`
-    : `Order #${number} is currently: ${status}. Do you wish to track any other order? Enter order id.`,
-  outputContexts: body.queryResult.outputContexts,
-};
-
 }
+
 
 private async handleFindRestaurant(body: any) {
   const session = body.session;

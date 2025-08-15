@@ -32,7 +32,7 @@ export class DineinService {
 
   async getBookingById(bookingId: number) {
   const result = await this.db.query(
-    `SELECT status FROM dinein_bookings WHERE id = $1`,
+    `SELECT id, restaurant_id, booking_time, people_count, status FROM dinein_bookings WHERE id = $1`,
     [bookingId],
   );
 
@@ -40,7 +40,7 @@ export class DineinService {
     return null; 
   }
 
-  return result.rows[0].status;
+  return result.rows[0];
 }
 
   /**
