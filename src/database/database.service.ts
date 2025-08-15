@@ -1,5 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Client } from 'pg';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnModuleDestroy {
@@ -7,15 +9,15 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.client = new Client({
-      user: 'postgres',
-      host: 'localhost',
-      database: 'zomato_chatbot',
-      password: '12345678',
+      host: 'db.zmsjlaenynhkslxbpbjq.supabase.co',
       port: 5432,
+      database: 'postgres',
+      user: 'postgres',
+      password: process.env.SUPABASE_PASS,
+      ssl: { rejectUnauthorized: false },
     });
-
     await this.client.connect();
-    console.log('PostgreSQL Connected');
+    console.log('PostgreSQL (Supabase) Connected');
   }
 
   async query(text: string, params?: any[]) {
