@@ -89,7 +89,7 @@ export class RestaurantService {
 
     const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
     const { rows } = await this.db.query(
-      `SELECT * FROM restaurants ${where}`,
+      `SELECT * FROM restaurants ${where} ORDER BY delivery_rating DESC`,
       params,
     );
     return rows;
