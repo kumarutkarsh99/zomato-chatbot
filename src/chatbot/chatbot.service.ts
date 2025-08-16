@@ -887,7 +887,12 @@ private async handleConfirmOrder(body: any) {
     outputContexts: [{
       name: `${session}/contexts/awaiting_main_choice`,
       lifespanCount: 1,
-    }]
+    }, 
+    {
+      name: `${session}/contexts/awaiting_location`,
+      lifespanCount: 1,
+    }
+    ]
   };
 }
 
