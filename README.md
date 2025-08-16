@@ -5,14 +5,14 @@ A smart conversational chatbot built to simulate Zomato-like functionality, focu
 Users can interact with the bot to **track orders, book dine-ins, and order food**, all via natural language using **Dialogflow**.
 
 ## Table of Contents
-1. [Overview](#-overview)  
-2. [Features](#-features)  
-3. [Tech Stack](#-tech-stack)  
-4. [Architecture](#-architecture)  
-5. [Setup Instructions](#-setup-instructions)  
-6. [Environment Variables](#-environment-variables)  
-7. [Future Improvements](#-future-improvements)  
-8. [Contributors](#-contributors)  
+1. [Overview](#overview)  
+2. [Features](#features)  
+3. [Tech Stack](#tech-stack)  
+4. [Architecture](#architecture)  
+5. [Setup Instructions](#setup-instructions)  
+6. [Environment Variables](#environment-variables)  
+7. [Future Improvements](#future-improvements)  
+8. [Contributors](#contributors)  
 
 ## Overview
 The **Zomato Chatbot** is an AI-powered food ordering and restaurant management assistant designed to help users:  
