@@ -942,7 +942,7 @@ async handleCancelOrderConfirm(body: any) {
       `Status: ${status}\n` +
       `Total Amount: ₹${totalAmount}\n` +
       `Items:\n${itemsText}. Are you sure you want to cancel your order ${orderId}?`,
-    outputContexts: [updatedContext],
+    outputContexts: [updatedContext, {name: `${session}/contexts/await_cancel_all`, lifespanCount: 1,}],
   };
 }
 
@@ -982,12 +982,12 @@ async handleCancelDineInConfirm(body: any) {
     parameters: {
       ...cancelCtx.parameters,
       dineinId,
-    },
+    }
   };
 
   return {
     fulfillmentText: `Booking #${dineinId} info: Restaurant: ${restaurantName} Time: ${booking_time} People: ${people_count} Status: ${status}. Are you sure you want to cancel your Dine In booking ${dineinId}?`,
-    outputContexts: [updatedContext],
+    outputContexts: [updatedContext, {name: `${session}/contexts/await_cancel_all`, lifespanCount: 1,}],
   };
 }
 
