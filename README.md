@@ -33,7 +33,7 @@ The bot is trained on **Bengaluru hotel data** using the **Zomato Bengaluru 2022
 - **Cancel Order** - Cancel ongoing orders or previous orders
 - **Cancel Dine-in** - Cancel dine-in bookings
 - **Natural Language Processing** – Powered by Dialogflow  
-- **Dataset:** [Zomato Bengaluru 2022 – Kaggle](https://www.kaggle.com/datasets/himanshupoddar/zomato-bangalore-restaurants)  
+- **Dataset:** [Zomato Bengaluru 2022 – Kaggle](https://www.kaggle.com/datasets/vora1011/zomato-bangalore-restaurants-2022)
 - **Persistent Data Storage** – PostgreSQL via Supabase  
 
 ## Tech Stack
