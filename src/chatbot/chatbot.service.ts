@@ -326,16 +326,23 @@ async handleConfirmBookingDetails(body: any) {
     function parseTimeInput(time: string): string {
   if (!time) return "00:00:00";
 
-  const isoMatch = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?/.test(time);
-  if (isoMatch) {
-    const d = new Date(time);
-    const hours = d.getHours().toString().padStart(2, "0");
-    const minutes = d.getMinutes().toString().padStart(2, "0");
-    const seconds = d.getSeconds().toString().padStart(2, "0");
+  // Case 1: ISO format (Dialogflow usually sends like 2025-08-16T19:30:00+05:30 or UTC Z)
+  if (/^\d{4}-\d{2}-\d{2}T/.test(time)) {
+    const d = new Date(time); // UTC-based JS date
+
+    // Convert UTC → IST (+5h30m)
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDate = new Date(d.getTime() + istOffset);
+
+    const hours = istDate.getUTCHours().toString().padStart(2, "0");
+    const minutes = istDate.getUTCMinutes().toString().padStart(2, "0");
+    const seconds = istDate.getUTCSeconds().toString().padStart(2, "0");
+
     return `${hours}:${minutes}:${seconds}`;
   }
 
- const match = time.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+  // Case 2: "7 pm" or "7:30 am"
+  const match = time.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
   if (match) {
     let hour = parseInt(match[1]);
     const minute = match[2] ? parseInt(match[2]) : 0;
@@ -347,10 +354,11 @@ async handleConfirmBookingDetails(body: any) {
     return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}:00`;
   }
 
-  const hmMatch = time.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  // Case 3: Already "HH:mm" or "HH:mm:ss" → assume IST input
+  const hmMatch = time.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
   if (hmMatch) {
-    const hours = hmMatch[1];
-    const minutes = hmMatch[2];
+    const hours = hmMatch[1].padStart(2, "0");
+    const minutes = hmMatch[2].padStart(2, "0");
     const seconds = hmMatch[3] || "00";
     return `${hours}:${minutes}:${seconds}`;
   }
@@ -358,6 +366,7 @@ async handleConfirmBookingDetails(body: any) {
   // Default fallback
   return "00:00:00";
 }
+
     const booking_time = parseTimeInput(time);
 
     const now = new Date();
