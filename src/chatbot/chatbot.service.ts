@@ -1,5 +1,3 @@
-// src/chatbot/chatbot.service.ts
-
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { RestaurantService } from '../restaurant/restaurant.service';
 import { MenusService } from '../menus/menus.service';
@@ -15,14 +13,12 @@ export class ChatbotService {
     private readonly orderService: OrderService
   ) {}
 
-  /** Dispatch incoming Dialogflow webhook to the right handler */
   async handleFulfillment(body: any) {
     const intent = body.queryResult.intent.displayName;
     const handler = this.handlers[intent] ?? this.handleNotSupported;
     return handler.call(this, body);
   }
 
-  /** Map of intent names → methods */
   private handlers: Record<string, Function> = {
     'A - Default Welcome - context:  - awaiting_main_choice': this.handleWelcome,
     'A2 - DineIn - context: awaiting_main_choice - dine_in': this.handleDineIn,
@@ -47,7 +43,7 @@ export class ChatbotService {
   };
 
   private handleNotSupported() {
-    return { fulfillmentText: 'Sorry, that intent is not supported.' };
+    return { fulfillmentText: `Sorry, that intent is not supported. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`};
   }
 
   private handleWelcome(body: any) {
@@ -61,7 +57,6 @@ export class ChatbotService {
     };
   }
 
-  /** User chose dine‑in */
   private handleDineIn(body: any) {
     const session = body.session;
     return {
@@ -72,7 +67,6 @@ export class ChatbotService {
     };
   }
 
-  /** List restaurants matching cuisine+location */
   private async handleRestaurantForDine(body: any) {
     const session = body.session;
     const { cuisine = '', location = '' } = body.queryResult.parameters;
@@ -84,7 +78,11 @@ export class ChatbotService {
     });
 
     if (!list.length) {
-      return { fulfillmentText: `No ${cuisine} restaurants found in ${location}.` };
+      return { fulfillmentText: `No ${cuisine} restaurants found in ${location}. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`, 
+        outputContexts: [{
+        name: `${session}/contexts/awaiting_main_choice`,
+        lifespanCount: 1,
+      }]};
     }
 
     const names = list.slice(0, 10).map(r => r.name).join(', ');
@@ -100,7 +98,6 @@ export class ChatbotService {
     };
   }
 
-  /** Show menu for the chosen restaurant */
   private async handleMenuForDine(body: any) {
     const session = body.session;
     const dineCtx = body.queryResult.outputContexts.find(ctx =>
@@ -112,7 +109,11 @@ export class ChatbotService {
       ? restaurantname[0]
       : restaurantname;
     if (!restaurantName) {
-      return { fulfillmentText: "Sorry, I didn't catch which restaurant." };
+      return { fulfillmentText: `Sorry, I didn't catch which restaurant. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`, 
+        outputContexts: [{
+        name: `${session}/contexts/awaiting_main_choice`,
+        lifespanCount: 1,
+      }]};
     }
 
     const restaurantId = await this.restaurantService.searchByNameAndArea(
@@ -122,7 +123,11 @@ export class ChatbotService {
     const items = await this.menusService.getByRestaurantId(restaurantId);
 
     if (!items.length) {
-      return { fulfillmentText: `No menu items found for ${restaurantName}.` };
+      return { fulfillmentText: `No menu items found for ${restaurantName}. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`, 
+        outputContexts: [{
+        name: `${session}/contexts/awaiting_main_choice`,
+        lifespanCount: 1,
+      }]};
     }
 
     const list = items.slice(0, 10).map((i, idx) => `${idx + 1}. ${i.item_name}`).join('\n');
@@ -158,7 +163,11 @@ export class ChatbotService {
     );
 
     if (!dineCtx || !dineCtx.parameters.restaurantId) {
-      return { fulfillmentText: "Sorry, I don't know which restaurant you mean." };
+      return { fulfillmentText: `Sorry, I don't know which restaurant you mean. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`, 
+        outputContexts: [{
+        name: `${session}/contexts/awaiting_main_choice`,
+        lifespanCount: 1,
+      }]};
     }
 
     const { cuisine, location, restaurantname, restaurantId } = dineCtx.parameters;
@@ -168,7 +177,11 @@ export class ChatbotService {
     try {
       details = await this.restaurantService.getById(restaurantId);
     } catch (e) {
-      return { fulfillmentText: `I couldn't find details for ${restaurantName}.` };
+      return { fulfillmentText: `I couldn't find details for ${restaurantName}. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`, 
+        outputContexts: [{
+        name: `${session}/contexts/awaiting_main_choice`,
+        lifespanCount: 1,
+      }]};
     }
 
     const {
@@ -186,18 +199,18 @@ export class ChatbotService {
     } = details;
 
     const speech = `
-Here are the details for ${name}:
-• Address: ${full_address}
-• Hours: ${timing}
-• ${is_indoor_seating ? 'Indoor Seating' : 'Outdoor Seating'}
-• ${is_veg_only ? 'Veg' : 'Veg + Non-Veg'}
-• Dinner Rating: ${dinner_rating}
-• Known For: ${Array.isArray(known_for) ? known_for.join(', ') : known_for}
-• Popular Dishes: ${Array.isArray(popular_dishes) ? popular_dishes.join(', ') : popular_dishes}
-• Cuisines: ${Array.isArray(cuisines) ? cuisines.join(', ') : cuisines}
-• Famous For: ${Array.isArray(people_known_for) ? people_known_for.join(', ') : people_known_for}
-• Average cost: ${average_cost}.
-Would you like to proceed with booking this restaurant?
+      Here are the details for ${name}:
+      • Address: ${full_address}
+      • Hours: ${timing}
+      • ${is_indoor_seating ? 'Indoor Seating' : 'Outdoor Seating'}
+      • ${is_veg_only ? 'Veg' : 'Veg + Non-Veg'}
+      • Dinner Rating: ${dinner_rating}
+      • Known For: ${Array.isArray(known_for) ? known_for.join(', ') : known_for}
+      • Popular Dishes: ${Array.isArray(popular_dishes) ? popular_dishes.join(', ') : popular_dishes}
+      • Cuisines: ${Array.isArray(cuisines) ? cuisines.join(', ') : cuisines}
+      • Famous For: ${Array.isArray(people_known_for) ? people_known_for.join(', ') : people_known_for}
+      • Average cost: ${average_cost}.
+      Would you like to proceed with booking this restaurant?
     `.trim();
 
     return {
@@ -224,7 +237,11 @@ Would you like to proceed with booking this restaurant?
     );
 
     if (!ctx || !ctx.parameters.restaurantId) {
-      return { fulfillmentText: "Sorry, I don't have enough information to proceed with booking." };
+      return { fulfillmentText: `Sorry, I don't have enough information to proceed with booking. Type "Delivery", "Dine-in", "Track order/dine-in" or "Cancel" to continue.`, 
+        outputContexts: [{
+        name: `${session}/contexts/awaiting_main_choice`,
+        lifespanCount: 1,
+      }]};
     }
 
     const { cuisine, location, restaurantname, restaurantId } = ctx.parameters;
@@ -248,7 +265,11 @@ async handleConfirmBookingDetails(body: any) {
   );
 
   if (!ctx || !ctx.parameters.restaurantId) {
-    return { fulfillmentText: "Sorry, I couldn't confirm the restaurant info for your booking." };
+    return { fulfillmentText: `Sorry, I couldn't confirm the restaurant info for your booking. Type "Delivery", "Dine-in", "Track order/dine-in" or "Cancel" to continue.`, 
+        outputContexts: [{
+        name: `${session}/contexts/awaiting_main_choice`,
+        lifespanCount: 1,
+    }]};
   }
 
   const { cuisine, location, restaurantname, restaurantId } = ctx.parameters;
@@ -258,17 +279,18 @@ async handleConfirmBookingDetails(body: any) {
   if (!time || !people) {
     return {
       fulfillmentText: "I need both time and number of people to proceed with the booking.",
+      outputContexts: [body.queryResult.outputContexts]
     };
   }
 
   return {
     fulfillmentText: `Please review the booking details:
-• Restaurant: ${restaurantname}
-• Location: ${location}
-• Time: ${time}
-• People: ${people}
+      • Restaurant: ${restaurantname}
+      • Location: ${location}
+      • Time: ${time}
+      • People: ${people}
 
-Would you like to confirm the booking?`,
+      Would you like to confirm the booking?`,
     outputContexts: [
       {
         name: `${session}/contexts/await_confirm_booking`,
@@ -287,74 +309,76 @@ Would you like to confirm the booking?`,
 }
 
   async handleDineInBooking(body: any) {
-  const session = body.session;
-  const ctx = body.queryResult.outputContexts.find(c =>
-    c.name.endsWith('/contexts/await_confirm_booking'),
-  );
+    const session = body.session;
+    const ctx = body.queryResult.outputContexts.find(c =>
+      c.name.endsWith('/contexts/await_confirm_booking'),
+    );
 
-  if (!ctx || !ctx.parameters.restaurantId) {
+    if (!ctx || !ctx.parameters.restaurantId) {
+      return {
+        fulfillmentText: `Sorry, I couldn't confirm the restaurant info for your booking. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`, 
+        outputContexts: [{
+        name: `${session}/contexts/awaiting_main_choice`,
+        lifespanCount: 1,
+      }]};
+    }
+
+    const { restaurantname, restaurantId, time, people } = ctx.parameters;
+
+    function parseTimeInput(time: string) {
+      if (!time) return "00:00";
+
+      const isoMatch = time.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?/);
+      if (isoMatch) {
+        const d = new Date(time);
+        return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+      }
+
+      const match = time.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+      if (!match) return "00:00"; 
+      let hour = parseInt(match[1]);
+      const minute = match[2] ? parseInt(match[2]) : 0;
+      const period = match[3];
+
+      if (period === "pm" && hour < 12) hour += 12;
+      if (period === "am" && hour === 12) hour = 0;
+
+      return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    }
+
+    const booking_time = parseTimeInput(time);
+
+    const now = new Date();
+    const istOffset = 5.5 * 60; 
+    const istDate = new Date(now.getTime() + istOffset * 60 * 1000);
+    const booking_date = istDate.toISOString().split('T')[0]; 
+
+    const booking = await this.dineinService.bookTable({
+      user_id: 1,
+      restaurant_id: restaurantId,
+      booking_date,
+      booking_time,
+      people_count: people,
+    });
+
+    const booking_id = booking.id || Math.floor(100000 + Math.random() * 900000);
+
     return {
-      fulfillmentText: "Sorry, I couldn't confirm the restaurant info for your booking.",
+      fulfillmentText: `Booking confirmed!
+      • Restaurant: ${restaurantname}
+      • Time: ${booking_time}
+      • People: ${people}
+      • Booking ID: ${booking_id}.
+      Enjoy your meal! Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`,
+      outputContexts: [{
+        name: `${session}/contexts/awaiting_main_choice`,
+        lifespanCount: 1,
+      }]
     };
   }
 
-  const { restaurantname, restaurantId, time, people } = ctx.parameters;
-
-  function parseTimeInput(time: string) {
-  if (!time) return "00:00";
-
-  const isoMatch = time.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?/);
-  if (isoMatch) {
-    const d = new Date(time);
-    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-  }
-
-  const match = time.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
-  if (!match) return "00:00"; 
-  let hour = parseInt(match[1]);
-  const minute = match[2] ? parseInt(match[2]) : 0;
-  const period = match[3];
-
-  if (period === "pm" && hour < 12) hour += 12;
-  if (period === "am" && hour === 12) hour = 0;
-
-  return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-}
-
-  const booking_time = parseTimeInput(time);
-
-  const now = new Date();
-  const istOffset = 5.5 * 60; 
-  const istDate = new Date(now.getTime() + istOffset * 60 * 1000);
-  const booking_date = istDate.toISOString().split('T')[0]; 
-
-  console.log('Raw time:', time);
-  console.log('Booking date:', booking_date);
-  console.log('Booking time:', booking_time);
-
-  const booking = await this.dineinService.bookTable({
-    user_id: 1,
-    restaurant_id: restaurantId,
-    booking_date,
-    booking_time,
-    people_count: people,
-  });
-
-  const booking_id = booking.id || Math.floor(100000 + Math.random() * 900000);
-
-  return {
-    fulfillmentText: `Booking confirmed!
-• Restaurant: ${restaurantname}
-• Time: ${booking_time}
-• People: ${people}
-• Booking ID: ${booking_id}
-
-Enjoy your meal!`,
-    outputContexts: [],
-  };
-}
-
 async handleTrackDineinOrder(body: any) {
+  const session = body.session;
   try {
     const ctx = body.queryResult.outputContexts.find(c =>
       c.name.endsWith('/contexts/awaiting_dine_in_id'),
@@ -362,14 +386,22 @@ async handleTrackDineinOrder(body: any) {
 
     if (!ctx || !ctx.parameters.number) {
       return {
-        fulfillmentText: "I couldn't find your dine In ID. Can you provide it again?",
-      };
+        fulfillmentText: `I couldn't find your dine In ID. Can you provide it again?`, 
+        outputContexts: [{
+        name: `${session}/contexts/awaiting_dine_in_id`,
+        lifespanCount: 1,
+      }]};
     }
 
     const { number } = ctx.parameters;
     const booking = await this.dineinService.getBookingById(number);
     if (!booking) {
-      return { fulfillmentText: `Booking #${number} not found.` };
+      return { 
+        fulfillmentText: `Booking #${number} not found. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`, 
+        outputContexts: [{
+        name: `${session}/contexts/awaiting_main_choice`,
+        lifespanCount: 1,
+      }]};
     }
 
     const { restaurant_id, booking_time, people_count, status } = booking;
@@ -380,42 +412,55 @@ async handleTrackDineinOrder(body: any) {
     return {
       fulfillmentText: status == null
         ? `Booking #${number} not found.`
-        : `Booking #${number} info: Restaurant: ${restaurantName} Time: ${booking_time} People: ${people_count} Status: ${status}.`,
-      outputContexts: body.queryResult.outputContexts,
+        : `Booking #${number} info: Restaurant: ${restaurantName} Time: ${booking_time} People: ${people_count} Status: ${status}. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`,
+      outputContexts: [{
+        name: `${session}/contexts/awaiting_main_choice`,
+        lifespanCount: 1,
+      }]
     };
   } catch (err) {
     console.error('Error in handleTrackDineinOrder:', err);
-    return { fulfillmentText: 'Sorry, I could not retrieve your booking. Please try again.' };
+    return { fulfillmentText: 'Sorry, I could not retrieve your booking. Please try again with your booking Id.',
+      outputContexts: [{
+        name: `${session}/contexts/awaiting_dine_in_id`,
+        lifespanCount: 1,
+      }]
+     };
   }
 }
 
 async handleTrackOrder(body: any) {
+  const session = body.session;
   try {
-    // Get the context with order ID
     const ctx = body.queryResult.outputContexts.find(c =>
       c.name.endsWith('/contexts/awaiting_order_id'),
     );
 
     if (!ctx || !ctx.parameters.number) {
       return {
-        fulfillmentText: "I couldn't find your order ID. Can you provide it again?",
-      };
+        fulfillmentText: `I couldn't find your order ID. Can you provide it again?`,
+        outputContexts: [{
+        name: `${session}/contexts/awaiting_order_id`,
+        lifespanCount: 1,
+      }]};
     }
 
     const { number: orderId } = ctx.parameters;
     const order = await this.orderService.trackOrder(orderId);
 
     if (!order) {
-      return { fulfillmentText: `Order #${orderId} not found.` };
+      return { fulfillmentText: `Order #${orderId} not found. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`, 
+      outputContexts: [{
+      name: `${session}/contexts/awaiting_main_choice`,
+      lifespanCount: 1,
+    }] };
     }
 
     const { totalAmount, restaurantId, items, status } = order;
 
-    // Get restaurant name
     const restaurant = await this.restaurantService.getById(restaurantId);
     const restaurantName = restaurant?.name || 'Unknown';
 
-    // Format items for fulfillment text
     const itemsText = items
       .map(i => `- ${i.name} x${i.quantity} (₹${i.price})`)
       .join('\n');
@@ -423,15 +468,24 @@ async handleTrackOrder(body: any) {
     const fulfillmentText = `Here is the summary for your order #${orderId} from ${restaurantName}:\n\n` +
       `Status: ${status}\n` +
       `Total Amount: ₹${totalAmount}\n` +
-      `Items:\n${itemsText}`;
+      `Items:\n${itemsText}. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`;
 
     return {
       fulfillmentText,
-      outputContexts: body.queryResult.outputContexts,
+      outputContexts: [{
+        name: `${session}/contexts/awaiting_main_choice`,
+        lifespanCount: 1,
+      }]
     };
   } catch (err) {
     console.error('Error in handleTrackOrder:', err);
-    return { fulfillmentText: 'Sorry, I could not retrieve your order. Please try again.' };
+    return { 
+      fulfillmentText: 'Sorry, I could not retrieve your order. Please try again with your Order Id.', 
+      outputContexts: [{
+        name: `${session}/contexts/awaiting_order_id`,
+        lifespanCount: 1,
+      }] 
+    };
   }
 }
 
@@ -454,7 +508,11 @@ private async handleFindRestaurant(body: any) {
   });
 
     if (!list.length) {
-      return { fulfillmentText: `No ${cuisine} restaurants found in ${location}.` };
+      return { fulfillmentText: `No ${cuisine} restaurants found in ${location}. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`, 
+      outputContexts: [{
+      name: `${session}/contexts/awaiting_main_choice`,
+      lifespanCount: 1,
+      }]};
     }
 
     const names = list.slice(0, 10).map(r => r.name).join(', ');
@@ -474,23 +532,24 @@ private async handleFindRestaurant(body: any) {
 private async handleSelectDishes(body: any) {
   const session = body.session;
 
-  // Extract restaurant name (Dialogflow sometimes returns array)
   const restaurantArr = body.queryResult.parameters?.restaurantname || [];
   const restaurantName = Array.isArray(restaurantArr) ? restaurantArr[0] : restaurantArr;
 
-  // Get the stored cuisine & location from the previous context directly
   const prevCtx = body.queryResult.outputContexts.find(ctx =>
     ctx.name.endsWith('/contexts/awaiting_restaurant_selection')
   );
 
   const { cuisine = '', location = '' } = prevCtx?.parameters || {};
 
-  // Look up restaurant and its menu
   const restaurantId = await this.restaurantService.searchByNameAndArea(restaurantName, location);
   const items = await this.menusService.getByRestaurantId(restaurantId);
 
   if (!items.length) {
-    return { fulfillmentText: `No menu items found for ${restaurantName}.` };
+    return { fulfillmentText: `No menu items found for ${restaurantName}. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`, 
+      outputContexts: [{
+      name: `${session}/contexts/awaiting_main_choice`,
+      lifespanCount: 1,
+    }] };
   }
 
   const list = items.slice(0, 10).map((i, idx) => `${idx + 1}. ${i.item_name}`).join('\n');
@@ -510,7 +569,6 @@ private async handleSelectDishes(body: any) {
 private async handleAddDish(body: any) {
   const session = body.session;
 
-  // Ensure both are arrays (Dialogflow may send a single value or an array)
   const dishNames: string[] = Array.isArray(body.queryResult.parameters?.dishname)
     ? body.queryResult.parameters.dishname
     : [body.queryResult.parameters?.dishname || ''];
@@ -531,14 +589,11 @@ private async handleAddDish(body: any) {
     dishes = []
   } = dishCtx?.parameters || {};
 
-  // Clone existing dishes list
   const updatedDishes = Array.isArray(dishes) ? [...dishes] : [];
 
-  // Add each incoming dish to the list
   dishNames.forEach((dish, idx) => {
     const qty = quantities[idx] || 1;
 
-    // Optional: merge if dish already exists
     const existingIndex = updatedDishes.findIndex(
       d => d.dishName.toLowerCase() === dish.toLowerCase()
     );
@@ -574,39 +629,33 @@ private async handleAddDish(body: any) {
 private async handleUpdateDishes(body: any) {
   const session = body.session;
 
-  // Get new quantity and dish from parameters
   const qtyToAdd = body.queryResult.parameters?.number?.[0] || 0;
   const dishName = body.queryResult.parameters?.dishname?.[0] || '';
 
-  // Get previous context with cart data
   const dishCtx = body.queryResult.outputContexts.find(ctx =>
     ctx.name.endsWith('/contexts/awaiting_dish_selection')
   );
 
   if (!dishCtx) {
-    return { fulfillmentText: "I couldn't find your current order to update." };
+    return { fulfillmentText: "I couldn't find your current order to update. Please add/remove dishes or provide address.",
+      outputContexts: [body.queryResult.outputContexts]
+    };
   }
 
-  // Get the existing cart
   let dishes = dishCtx.parameters?.dishes || [];
 
-  // Find if the dish is already in the cart
   const dishIndex = dishes.findIndex(
     d => d.dishName.toLowerCase() === dishName.toLowerCase()
   );
 
   if (dishIndex !== -1) {
-    // Update quantity
     dishes[dishIndex].quantity += qtyToAdd;
   } else {
-    // Add new dish to the cart
     dishes.push({ dishName, quantity: qtyToAdd });
   }
 
-  // Optional: Remove items with zero or negative quantity
   dishes = dishes.filter(d => d.quantity > 0);
 
-  // Prepare a nice cart summary
   const cartSummary = dishes
     .map(d => `${d.quantity} × ${d.dishName}`)
     .join(', ');
@@ -633,16 +682,22 @@ private async handleRemoveDishes(body: any) {
   const removeQty = Number(body.queryResult.parameters?.number) || null;
 
   if (!dishName) {
-    return { fulfillmentText: "I couldn't find the dish you want to remove." };
+    return { fulfillmentText: `I couldn't find the dish you want to remove. Please add/remove items or provide address.`,
+      outputContexts: [body.queryResult.outputContexts] 
+    };
   }
 
-  // Get current cart from awaiting_dish_selection context
   const dishCtx = body.queryResult.outputContexts.find(ctx =>
     ctx.name.endsWith('/contexts/awaiting_dish_selection')
   );
 
   if (!dishCtx) {
-    return { fulfillmentText: "I couldn't find your current order to update." };
+    return { 
+      fulfillmentText: `I couldn't find your current order to update. Type "Delivery", "Dine-in", "Track Order/Dine-in" or "Cancel" to continue.`,
+      outputContexts: [{
+      name: `${session}/contexts/awaiting_main_choice`,
+      lifespanCount: 1,
+    }]};
   }
 
   let dishes = [...(dishCtx.parameters?.dishes || [])];
@@ -652,13 +707,23 @@ private async handleRemoveDishes(body: any) {
   );
 
   if (index === -1) {
-    return { fulfillmentText: `You don't have ${dishName} in your cart.` };
+    return { 
+      fulfillmentText: `You don't have ${dishName} in your cart. Do you want to modify your order? If no, Please provide your address`,
+      outputContexts: [
+      {
+        name: `${session}/contexts/awaiting_dish_selection`,
+        lifespanCount: 4,
+        parameters: {
+          ...dishCtx.parameters,
+          dishes
+        }
+      }
+    ]};
   }
 
   if (removeQty && removeQty < dishes[index].quantity) {
     dishes[index].quantity -= removeQty;
   } else {
-    // Remove entirely if quantity not provided or removal >= current quantity
     dishes.splice(index, 1);
   }
 
@@ -684,13 +749,11 @@ private async handleRemoveDishes(body: any) {
 private async handleAddressConfirmation(body: any) {
   const session = body.session;
 
-  // Get the address from parameters or contexts
   const address = body.queryResult.parameters?.Address ||
     body.queryResult.outputContexts.find(ctx =>
       ctx.name.endsWith('/contexts/awaiting_dish_selection')
     )?.parameters?.Address || '';
 
-  // Get the dish selection context
   const dishCtx = body.queryResult.outputContexts.find(ctx =>
     ctx.name.endsWith('/contexts/awaiting_dish_selection')
   );
@@ -702,14 +765,15 @@ private async handleAddressConfirmation(body: any) {
 
   if (!dishes.length) {
     return {
-      fulfillmentText: "I couldn't find any items in your order to confirm."
-    };
+      fulfillmentText: `I couldn't find any items in your order to confirm. Type "Delivery", "Dine-in", "Track Order/Dine-in" or "Cancel" to continue.`,
+      outputContexts: [{
+      name: `${session}/contexts/awaiting_main_choice`,
+      lifespanCount: 1,
+    }]};
   }
 
-  // Format the order list
   const orderList = dishes.map(d => `${d.quantity} × ${d.dishName}`).join(', ');
 
-  // Build confirmation message
   const confirmationMessage =
     `Here is your order summary:\n` +
     `Restaurant: ${restaurantName} (${cuisine}, ${location})\n` +
@@ -735,15 +799,17 @@ private async handleAddressConfirmation(body: any) {
 private async handleConfirmOrder(body: any) {
   const session = body.session;
 
-  // Get the confirm_order context
   const confirmCtx = body.queryResult.outputContexts.find(ctx =>
     ctx.name.endsWith('/contexts/awaiting_confirm_order')
   );
 
   if (!confirmCtx) {
     return {
-      fulfillmentText: "I couldn't find any order details to confirm."
-    };
+      fulfillmentText: `I couldn't find any order details to confirm. Type "Delivery", "Dine-in", "Track Order/Dine-in" or "Cancel" to continue.`,
+      outputContexts: [{
+      name: `${session}/contexts/awaiting_main_choice`,
+      lifespanCount: 1,
+    }]};
   }
 
   const {
@@ -757,50 +823,42 @@ private async handleConfirmOrder(body: any) {
 
   if (!restaurantId || dishes.length === 0) {
     return {
-      fulfillmentText: "I couldn't find the restaurant or dishes to place your order."
-    };
+      fulfillmentText: `I couldn't find the restaurant or dishes to place your order. Type "Delivery", "Dine-in", "Track Order/Dine-in" or "Cancel" to continue.`,
+      outputContexts: [{
+      name: `${session}/contexts/awaiting_main_choice`,
+      lifespanCount: 1,
+    }]};
   }
 
-  // Convert dishes from context into format placeOrder expects
   const items = dishes.map((d: any) => ({
     dishname: d.dishName,
     quantity: d.quantity
   }));
 
-  // Call placeOrder with fixed userId = 1
   const { orderId, totalPrice } = await this.orderService.placeOrder(
-    1, // hardcoded userId for now
+    1, 
     restaurantId,
     items
   );
 
-  // Format the order list for response
   const orderList = dishes
     .map((d: any) => `${d.quantity} × ${d.dishName}`)
     .join(', ');
 
-  // Build the placed order confirmation message
   const placedMessage =
     `Your order (ID: ${orderId}) has been placed!\n\n` +
     `Restaurant: ${restaurantName} (${cuisine}, ${location})\n` +
     `Items: ${orderList}\n` +
     `Total: ₹${totalPrice}\n` +
     `Delivery Address: ${Address}\n\n` +
-    `Thank you for ordering with us!`;
+    `Thank you for ordering with us! Type "Delivery", "Dine-in", "Track order/dine in" or "Cancel" to continue.`;
 
   return {
     fulfillmentText: placedMessage,
-    outputContexts: [
-      {
-        name: `${session}/contexts/order_completed`,
-        lifespanCount: 1,
-        parameters: {
-          ...confirmCtx.parameters,
-          orderId,
-          totalPrice
-        }
-      }
-    ]
+    outputContexts: [{
+      name: `${session}/contexts/awaiting_main_choice`,
+      lifespanCount: 1,
+    }]
   };
 }
 
@@ -812,7 +870,11 @@ async handleCancelOrderConfirm(body: any) {
   );
 
   if (!cancelCtx || !cancelCtx.parameters.number) {
-    return { fulfillmentText: "Sorry, I didn't get the order ID to cancel." };
+    return { fulfillmentText: "Sorry, I didn't get the order ID to cancel. Please try again with your Order ID.",
+      outputContexts: [{
+      name: `${session}/contexts/awaiting_cancel_order_id`,
+      lifespanCount: 1,
+    }]};
   }
 
   const orderId = cancelCtx.parameters.number;
@@ -820,16 +882,19 @@ async handleCancelOrderConfirm(body: any) {
   const order = await this.orderService.trackOrder(orderId);
 
     if (!order) {
-      return { fulfillmentText: `Order #${orderId} not found.` };
+      return { 
+        fulfillmentText: `Order #${orderId} not found. Type "Delivery", "Dine-in", "Track Order/Dine-in" or "Cancel" to continue.`,
+        outputContexts: [{
+        name: `${session}/contexts/awaiting_main_choice`,
+        lifespanCount: 1,
+      }]};
     }
 
     const { totalAmount, restaurantId, items, status } = order;
 
-    // Get restaurant name
     const restaurant = await this.restaurantService.getById(restaurantId);
     const restaurantName = restaurant?.name || 'Unknown';
 
-    // Format items for fulfillment text
     const itemsText = items
       .map(i => `- ${i.name} x${i.quantity} (₹${i.price})`)
       .join('\n');
@@ -860,13 +925,21 @@ async handleCancelDineInConfirm(body: any) {
   );
 
   if (!cancelCtx || !cancelCtx.parameters.number) {
-    return { fulfillmentText: "Sorry, I didn't get the order ID to cancel." };
+    return { fulfillmentText: "Sorry, I didn't get the DineIn ID to cancel. Please try again with your DineIn ID.", 
+      outputContexts: [{
+      name: `${session}/contexts/awaiting_cancel_dinein_id`,
+      lifespanCount: 1,
+    }]};
   }
 
   const dineinId = cancelCtx.parameters.number;
   const booking = await this.dineinService.getBookingById(dineinId);
     if (!booking) {
-      return { fulfillmentText: `Booking #${dineinId} not found.` };
+      return { fulfillmentText: `Booking #${dineinId} not found. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`, 
+       outputContexts: [{
+      name: `${session}/contexts/awaiting_main_choice`,
+      lifespanCount: 1,
+    }]};
     }
 
     const { restaurant_id, booking_time, people_count, status } = booking;
@@ -892,20 +965,26 @@ async handleCancelDineInConfirm(body: any) {
 async handleConfirmCancel(body: any) {
   const session = body.session;
 
-  // Find the awaiting_confirm_cancel context
   const confirmCtx = body.queryResult.outputContexts.find(ctx =>
     ctx.name.endsWith('/contexts/awaiting_confirm_cancel')
   );
 
   if (!confirmCtx) {
-    return { fulfillmentText: "Sorry, I couldn't find the confirmation context." };
+    return { fulfillmentText: `Sorry, I couldn't find the confirmation context. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`,
+      outputContexts: [{
+      name: `${session}/contexts/awaiting_main_choice`,
+      lifespanCount: 1,
+    }]};
   }
 
-  // Extract dineinId and orderId from this context
-  const { dineinId, orderId } = confirmCtx.parameters;
+  const { dineinId, orderId } = confirmCtx.parameters ?? {};
 
   if (!dineinId && !orderId) {
-    return { fulfillmentText: "No order or dine-in found to cancel." };
+    return { fulfillmentText: `Cancellation successful. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`, 
+      outputContexts: [{
+      name: `${session}/contexts/awaiting_main_choice`,
+      lifespanCount: 1,
+    }]};
   }
 
   let resultMessage = '';
@@ -913,20 +992,23 @@ async handleConfirmCancel(body: any) {
   try {
     if (orderId) {
       await this.orderService.cancelOrder(orderId);
-      resultMessage += `Order ${orderId} has been successfully cancelled. `;
+      resultMessage += `Order ${orderId} has been successfully cancelled. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`;
     }
     if (dineinId) {
       await this.dineinService.cancelBooking(dineinId);
-      resultMessage += `Dine-in booking ${dineinId} has been successfully cancelled.`;
+      resultMessage += `Dine-in booking ${dineinId} has been successfully cancelled. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`;
     }
   } catch (err) {
     console.error('Error cancelling:', err);
-    resultMessage = 'There was an error completing the cancellation.';
+    resultMessage = 'There was an error completing the cancellation. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.';
   }
 
   return {
     fulfillmentText: resultMessage,
-    outputContexts: [],
+    outputContexts: [{
+      name: `${session}/contexts/awaiting_main_choice`,
+      lifespanCount: 1,
+    }]
   };
 }
 
