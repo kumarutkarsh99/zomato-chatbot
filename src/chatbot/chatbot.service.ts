@@ -323,27 +323,41 @@ async handleConfirmBookingDetails(body: any) {
 
     const { restaurantname, restaurantId, time, people } = ctx.parameters;
 
-    function parseTimeInput(time: string) {
-      if (!time) return "00:00";
+    function parseTimeInput(time: string): string {
+  if (!time) return "00:00:00";
 
-      const isoMatch = time.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?/);
-      if (isoMatch) {
-        const d = new Date(time);
-        return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-      }
+  const isoMatch = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?/.test(time);
+  if (isoMatch) {
+    const d = new Date(time);
+    const hours = d.getHours().toString().padStart(2, "0");
+    const minutes = d.getMinutes().toString().padStart(2, "0");
+    const seconds = d.getSeconds().toString().padStart(2, "0");
+    return `${hours}:${minutes}:${seconds}`;
+  }
 
-      const match = time.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
-      if (!match) return "00:00"; 
-      let hour = parseInt(match[1]);
-      const minute = match[2] ? parseInt(match[2]) : 0;
-      const period = match[3];
+ const match = time.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+  if (match) {
+    let hour = parseInt(match[1]);
+    const minute = match[2] ? parseInt(match[2]) : 0;
+    const period = match[3];
 
-      if (period === "pm" && hour < 12) hour += 12;
-      if (period === "am" && hour === 12) hour = 0;
+    if (period === "pm" && hour < 12) hour += 12;
+    if (period === "am" && hour === 12) hour = 0;
 
-      return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-    }
+    return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}:00`;
+  }
 
+  const hmMatch = time.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (hmMatch) {
+    const hours = hmMatch[1];
+    const minutes = hmMatch[2];
+    const seconds = hmMatch[3] || "00";
+    return `${hours}:${minutes}:${seconds}`;
+  }
+
+  // Default fallback
+  return "00:00:00";
+}
     const booking_time = parseTimeInput(time);
 
     const now = new Date();
