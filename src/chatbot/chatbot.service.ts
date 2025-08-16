@@ -50,7 +50,7 @@ export class ChatbotService {
     const session = body.session;
     return {
       fulfillmentText:
-        'Welcome to Zomato Chatbot! Type "Delivery" or "Dine‑in" to continue.',
+        'Welcome to Zomato Chatbot! Type "Delivery", "Dine-in", "Track order/dine in" or "Cancel" to continue.',
       outputContexts: [
         { name: `${session}/contexts/awaiting_user_choice`, lifespanCount: 5 },
       ],
