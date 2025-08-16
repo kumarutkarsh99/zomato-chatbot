@@ -12,7 +12,7 @@ jobs:
       - name: Curl backend health endpoint
         run: |
           echo "Pinging backend at $(date)..."
-          RESPONSE=$(curl -s -w "%{http_code}" -o response.json https://zomato-chatbot-backend.onrender.com/health)
+          RESPONSE=$(curl -s -w "%{http_code}" -o response.json https://zomato-chatbot-backend.onrender.com/chatbot/health)
           echo "HTTP code: $RESPONSE"
 
           if [ "$RESPONSE" -eq 200 ]; then
