@@ -217,7 +217,7 @@ export class ChatbotService {
           parameters: { cuisine, location, restaurantname, restaurantId},
         },
         {
-          name: `${session}/contexts/new_dine_in`,
+          name: `${session}/contexts/awaiting_main_choice`,
           lifespanCount: 2,
         },
       ],
