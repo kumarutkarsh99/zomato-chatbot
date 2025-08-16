@@ -9,11 +9,10 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   private client: Client;
 
   async onModuleInit() {
-    // Use full connection string from .env
     this.client = new Client({
       connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false }, // required for Supabase
-      family: 4, // force IPv4
+      ssl: { rejectUnauthorized: false }, 
+      family: 4, 
     });
 
     try {
