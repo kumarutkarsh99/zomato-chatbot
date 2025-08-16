@@ -816,6 +816,10 @@ private async handleAddressConfirmation(body: any) {
           ...dishCtx.parameters,
           Address: address
         }
+      },
+       {
+        name: `${session}/contexts/awaiting_main_choice`,
+        lifespanCount: 1,
       }
     ]
   };
