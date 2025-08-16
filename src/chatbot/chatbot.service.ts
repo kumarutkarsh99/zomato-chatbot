@@ -609,7 +609,7 @@ private async handleAddDish(body: any) {
     .join(', ');
 
   return {
-    fulfillmentText: `Added ${addedList} to your order. Anything else? If no, Please provide your address.`,
+    fulfillmentText: `Added ${addedList} to your order. Your cart has: ${updatedDishes}. Anything else? If no, Please provide your address.`,
     outputContexts: [
       {
         name: `${session}/contexts/awaiting_dish_selection`,
@@ -980,7 +980,7 @@ async handleConfirmCancel(body: any) {
   const { dineinId, orderId } = confirmCtx.parameters ?? {};
 
   if (!dineinId && !orderId) {
-    return { fulfillmentText: `Cancellation successful. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`, 
+    return { fulfillmentText: `Your cancellation request has been processed successfully. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`, 
       outputContexts: [{
       name: `${session}/contexts/awaiting_main_choice`,
       lifespanCount: 1,
