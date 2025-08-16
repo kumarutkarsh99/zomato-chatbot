@@ -143,11 +143,6 @@ export class ChatbotService {
       fulfillmentText: `Here are some items in ${restaurantName}:\n${list}.\nWould you like more details about this restaurant?`,
       outputContexts: [
       {
-        name: `${session}/contexts/dine_in`,
-        lifespanCount: 2,
-        parameters,
-      },
-      {
         name: `${session}/contexts/await_details`,
         lifespanCount: 1,
         parameters,
@@ -303,6 +298,10 @@ async handleConfirmBookingDetails(body: any) {
           people,
         },
       },
+      {
+        name: `${session}/contexts/awaiting_main_choice`,
+        lifespanCount: 1,
+      }
     ],
   };
 }
