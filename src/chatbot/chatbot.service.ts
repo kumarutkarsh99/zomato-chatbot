@@ -804,7 +804,7 @@ private async handleAddressConfirmation(body: any) {
     `Restaurant: ${restaurantName} (${cuisine}, ${location})\n` +
     `Items: ${orderList}\n` +
     `Delivery Address: ${address}\n\n` +
-    `Do you want me to place this order?`;
+    `Do you want me to place this order or cancel it?`;
 
   return {
     fulfillmentText: confirmationMessage,
@@ -884,12 +884,10 @@ private async handleConfirmOrder(body: any) {
 
   return {
     fulfillmentText: placedMessage,
-    outputContexts: [
-    {
-      name: `${session}/contexts/awaiting_location`,
+    outputContexts: [{
+      name: `${session}/contexts/awaiting_main_choice`,
       lifespanCount: 1,
-    }
-    ]
+    }]
   };
 }
 
