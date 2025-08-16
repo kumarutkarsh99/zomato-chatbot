@@ -11,9 +11,17 @@ jobs:
     steps:
       - name: Curl backend health endpoint
         run: |
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://zomato-chatbot-backend.onrender.com/health)
-          echo "Response code: $RESPONSE"
-          if [ "$RESPONSE" -ne 200 ]; then
-            echo "⚠️ Backend did not return 200. Something may be wrong."
+          echo "Pinging backend at $(date)..."
+          RESPONSE=$(curl -s -w "%{http_code}" -o response.json https://zomato-chatbot-backend.onrender.com/health)
+          echo "HTTP code: $RESPONSE"
+
+          if [ "$RESPONSE" -eq 200 ]; then
+            echo "Backend is alive!"
+            echo "Response body:"
+            cat response.json
+          else
+            echo "Backend did not return 200. Something may be wrong."
+            echo "Response body (if any):"
+            cat response.json
             exit 1
           fi

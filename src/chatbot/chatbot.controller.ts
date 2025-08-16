@@ -1,10 +1,10 @@
 import { Controller, Post, Body, Get } from '@nestjs/common';
 import { ChatbotService } from './chatbot.service';
+import { DatabaseService } from 'src/database/database.service';
 
 @Controller('chatbot')
 export class ChatbotController {
   constructor(private chatbotService: ChatbotService) {}
-
   // This is the Dialogflow webhook entry point
   @Post('webhook')
   async handleDialogflowWebhook(@Body() body: any) {
@@ -14,8 +14,10 @@ export class ChatbotController {
 
 @Controller()
 export class AppController {
+  constructor( private dbService: DatabaseService) {}
   @Get('health')
-  getHealth() {
-    return { status: 'OK' };
+  async getHealth() {
+    const dbTime = await this.dbService.checkConnection();
+    return { dbTime, status: 'OK' };
   }
 }

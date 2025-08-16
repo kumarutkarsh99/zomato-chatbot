@@ -39,4 +39,9 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       console.log('PostgreSQL Connection Closed');
     }
   }
+
+  async checkConnection() {
+    const res = await this.client.query('SELECT NOW() AS current_time;');
+    return res.rows[0];
+  }
 }
