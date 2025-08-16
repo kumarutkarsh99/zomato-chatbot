@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get } from '@nestjs/common';
 import { ChatbotService } from './chatbot.service';
 
 @Controller('chatbot')
@@ -9,5 +9,13 @@ export class ChatbotController {
   @Post('webhook')
   async handleDialogflowWebhook(@Body() body: any) {
     return await this.chatbotService.handleFulfillment(body);
+  }
+}
+
+@Controller()
+export class AppController {
+  @Get('health')
+  getHealth() {
+    return { status: 'OK' };
   }
 }
