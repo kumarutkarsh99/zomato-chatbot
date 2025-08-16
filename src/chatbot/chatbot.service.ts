@@ -608,8 +608,12 @@ private async handleAddDish(body: any) {
     .map((dish, idx) => `${quantities[idx] || 1} x ${dish}`)
     .join(', ');
 
+  const cartList = updatedDishes
+    .map(d => `${d.quantity} x ${d.dishName}`)
+    .join(', ');
+
   return {
-    fulfillmentText: `Added ${addedList} to your order. Your cart has: ${updatedDishes}. Anything else? If no, Please provide your address.`,
+    fulfillmentText: `Added ${addedList} to your order. Your cart has: ${cartList}. Anything else? If no, please provide your address.`,
     outputContexts: [
       {
         name: `${session}/contexts/awaiting_dish_selection`,
