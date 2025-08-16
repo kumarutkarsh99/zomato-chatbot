@@ -227,7 +227,7 @@ export class ChatbotService {
   async handleBookDineinPrompt(body: any) {
     const session = body.session;
     const ctx = body.queryResult.outputContexts.find(c =>
-      c.name.endsWith('/contexts/await_book_details') ||  c.name.endsWith('/contexts/await_details'),
+      c.name.endsWith('/contexts/await_book_details')
     );
 
     if (!ctx || !ctx.parameters.restaurantId) {
