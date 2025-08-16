@@ -1,98 +1,143 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Zomato Chatbot – Bengaluru Restaurants
+[Live Demo](https://zomato-chatbot-frontend.vercel.app/)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A smart conversational chatbot built to simulate Zomato-like functionality, focusing on restaurants in **Bengaluru**.  
+Users can interact with the bot to **track orders, book dine-ins, and order food**, all via natural language using **Dialogflow**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Table of Contents
+1. [Overview](#overview)  
+2. [Features](#features)  
+3. [Tech Stack](#tech-stack)  
+4. [Architecture](#architecture)  
+5. [Setup Instructions](#setup-instructions)  
+6. [Environment Variables](#environment-variables)  
+7. [Future Improvements](#future-improvements)  
+8. [Contributors](#contributors)  
 
-## Description
+## Overview
+The **Zomato Chatbot** is an AI-powered food ordering and restaurant management assistant designed to help users:  
+- Track online orders  
+- Track dine-in bookings  
+- Book a dine-in table  
+- Order food directly  
+- Cancel Order
+- Cancel dine-in
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+The bot is trained on **Bengaluru hotel data** using the **Zomato Bengaluru 2022 dataset from Kaggle**, combined with custom **Dialogflow intents** and contexts for smooth conversation flows
 
-## Project setup
+## Features
+- **Order Tracking** – Get real-time order status  
+- **Dine-in Tracking** – View dine-in reservations  
+- **Book Dine-in** – Reserve tables at Bengaluru hotels  
+- **Food Ordering** – Order items from menus via chat  
+- **Cancel Order** - Cancel ongoing orders or previous orders
+- **Cancel Dine-in** - Cancel dine-in bookings
+- **Natural Language Processing** – Powered by Dialogflow  
+- **Dataset:** [Zomato Bengaluru 2022 – Kaggle](https://www.kaggle.com/datasets/vora1011/zomato-bangalore-restaurants-2022)
+- **Persistent Data Storage** – PostgreSQL via Supabase  
 
-```bash
-$ npm install
+## Tech Stack
+- **Frontend:** React.js  
+- **Backend:** NestJS  
+- **Database:** PostgreSQL (Supabase)  
+- **NLP Engine:** Dialogflow ES  
+- **Hosting:** Render (Backend) , Vercel (Frontend) 
+
+## Architecture
+
+```
+[React Frontend with Dialogflow Messenger Beta]
+                  ⬇
+        [Dialogflow Agent (NLP)]
+                  ⬇
+        [NestJS Webhook Backend]
+                  ⬇
+    [Supabase / PostgreSQL Database]
+                  ⬆
+        Response returned to Dialogflow
+                  ⬆
+[Frontend Chat Widget displays bot's reply]
 ```
 
-## Compile and run the project
+**Flow Explanation:**
+
+1. **User opens the React app**, which has **Dialogflow Messenger Beta** embedded.
+2. User sends a message → The message goes **directly to Dialogflow** (Google-hosted).
+3. Dialogflow detects the intent and, if needed, **calls the webhook** (NestJS backend).
+4. The backend fetches or updates data from **Supabase/PostgreSQL**.
+5. The backend sends the data back to Dialogflow.
+6. Dialogflow formats the reply and sends it back to the **Messenger widget** in the frontend — without the frontend needing to handle the response logic.
+
+## Setup Instructions
+
+### Clone the repository
+```bash
+git clone https://github.com/your-repo/zomato-chatbot.git
+cd zomato-chatbot
+````
+
+### Install dependencies
+
+#### Backend:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cd backend
+npm install
 ```
 
-## Run tests
+#### Frontend:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cd frontend
+npm install
 ```
 
-## Deployment
+### Setup Database (Supabase / PostgreSQL)
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+* Create a Supabase project
+* Run SQL scripts
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Configure Dialogflow
+
+* Create Dialogflow ES agent
+* Create Intents/Context
+
+### Run locally
+
+#### Backend:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+next start --watch
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+#### Frontend:
 
-## Resources
+```bash
+npm run dev
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+## Environment Variables
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Create `.env` files in **backend** with the following:
 
-## Support
+**Backend `.env`:**
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```
+SUPABASE_KEY=your_supabase_key
+SUPABASE_PASS=your_supabase_password
+SUPABASE_HOST=your_supabase_db_name
+DATABASE_URL=your_database_url
+```
 
-## Stay in touch
+## Future Improvements
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+* Support for **multiple cities**
+* **Payment gateway integration**
+* **Voice command support**
+* **User authentication**
 
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## Contributors
+- Kumar Utkarsh
+- Adarsh Dhakar
+- Harsh Maurya
+- Bipasha Ray
