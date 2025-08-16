@@ -559,7 +559,7 @@ private async handleSelectDishes(body: any) {
     outputContexts: [
       {
         name: `${session}/contexts/awaiting_dish_selection`,
-        lifespanCount: 5,
+        lifespanCount: 1,
         parameters: { cuisine, location, restaurantName, restaurantId },
       },
     ],
@@ -617,7 +617,7 @@ private async handleAddDish(body: any) {
     outputContexts: [
       {
         name: `${session}/contexts/awaiting_dish_selection`,
-        lifespanCount: 5,
+        lifespanCount: 1,
         parameters: {
           cuisine,
           location,
@@ -669,7 +669,7 @@ private async handleUpdateDishes(body: any) {
     outputContexts: [
       {
         name: `${session}/contexts/awaiting_dish_selection`,
-        lifespanCount: 4,
+        lifespanCount: 1,
         parameters: {
           ...dishCtx.parameters,
           dishes
@@ -716,7 +716,7 @@ private async handleRemoveDishes(body: any) {
       outputContexts: [
       {
         name: `${session}/contexts/awaiting_dish_selection`,
-        lifespanCount: 4,
+        lifespanCount: 1,
         parameters: {
           ...dishCtx.parameters,
           dishes
@@ -740,7 +740,7 @@ private async handleRemoveDishes(body: any) {
     outputContexts: [
       {
         name: `${session}/contexts/awaiting_dish_selection`,
-        lifespanCount: 4,
+        lifespanCount: 1,
         parameters: {
           ...dishCtx.parameters,
           dishes
@@ -790,7 +790,7 @@ private async handleAddressConfirmation(body: any) {
     outputContexts: [
       {
         name: `${session}/contexts/awaiting_confirm_order`,
-        lifespanCount: 5,
+        lifespanCount: 1,
         parameters: {
           ...dishCtx.parameters,
           Address: address
