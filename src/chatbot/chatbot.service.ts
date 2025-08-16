@@ -62,7 +62,7 @@ export class ChatbotService {
     return {
       fulfillmentText: 'Great! Which cuisine and location?',
       outputContexts: [
-        { name: `${session}/contexts/dine_in_context`, lifespanCount: 5 },
+        { name: `${session}/contexts/dine_in_context`, lifespanCount: 2 },
       ],
     };
   }
@@ -91,7 +91,7 @@ export class ChatbotService {
       outputContexts: [
         {
           name: `${session}/contexts/dine_in_context`,
-          lifespanCount: 5,
+          lifespanCount: 2,
           parameters: { cuisine, location },
         },
       ],
@@ -140,15 +140,20 @@ export class ChatbotService {
     };
 
     return {
-      fulfillmentText: `Here are some items in ${restaurantName}:\n${list}.\nWould you like more details see more details about this restaurant?`,
+      fulfillmentText: `Here are some items in ${restaurantName}:\n${list}.\nWould you like more details about this restaurant?`,
       outputContexts: [
       {
         name: `${session}/contexts/dine_in_context`,
-        lifespanCount: 5,
+        lifespanCount: 2,
         parameters,
       },
       {
         name: `${session}/contexts/await_details_context`,
+        lifespanCount: 1,
+        parameters,
+      },
+      {
+        name: `${session}/contexts/await_details`,
         lifespanCount: 1,
         parameters,
       },
@@ -218,12 +223,12 @@ export class ChatbotService {
       outputContexts: [
         {
           name: `${session}/contexts/await_booking_context`,
-          lifespanCount: 5,
+          lifespanCount: 2,
           parameters: { cuisine, location, restaurantname, restaurantId},
         },
         {
           name: `${session}/contexts/dine_in_context`,
-          lifespanCount: 5,
+          lifespanCount: 2,
           parameters: { cuisine, location, restaurantname, restaurantId },
         },
       ],
@@ -294,7 +299,7 @@ async handleConfirmBookingDetails(body: any) {
     outputContexts: [
       {
         name: `${session}/contexts/await_confirm_booking`,
-        lifespanCount: 2,
+        lifespanCount: 1,
         parameters: {
           cuisine,
           location,
@@ -522,7 +527,7 @@ private async handleFindRestaurant(body: any) {
     outputContexts: [
       {
         name: `${session}/contexts/awaiting_restaurant_selection`,
-        lifespanCount: 5,
+        lifespanCount: 2,
         parameters: { cuisine, location },
       },
     ],
@@ -905,7 +910,7 @@ async handleCancelOrderConfirm(body: any) {
 
   const updatedContext = {
     name: `${session}/contexts/awaiting_confirm_cancel`,
-    lifespanCount: 3,
+    lifespanCount: 1,
     parameters: {
       ...cancelCtx.parameters,
       orderId,
@@ -953,7 +958,7 @@ async handleCancelDineInConfirm(body: any) {
 
   const updatedContext = {
     name: `${session}/contexts/awaiting_confirm_cancel`,
-    lifespanCount: 3,
+    lifespanCount: 1,
     parameters: {
       ...cancelCtx.parameters,
       dineinId,
