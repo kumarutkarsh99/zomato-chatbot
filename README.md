@@ -1,7 +1,7 @@
-# Zomato Chatbot – Bengaluru Hotels  
+# Zomato Chatbot – Bengaluru Restaurants
 [Live Demo](https://zomato-chatbot-frontend.vercel.app/)
 
-A smart conversational chatbot built to simulate Zomato-like functionality, focusing on hotels in **Bengaluru**.  
+A smart conversational chatbot built to simulate Zomato-like functionality, focusing on restaurants in **Bengaluru**.  
 Users can interact with the bot to **track orders, book dine-ins, and order food**, all via natural language using **Dialogflow**.
 
 ## Table of Contents
