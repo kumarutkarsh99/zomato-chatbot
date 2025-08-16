@@ -52,7 +52,7 @@ export class ChatbotService {
       fulfillmentText:
         'Welcome to Zomato Chatbot! Type "Delivery", "Dine-in", "Track order/dine in" or "Cancel" to continue.',
       outputContexts: [
-        { name: `${session}/contexts/awaiting_user_choice`, lifespanCount: 5 },
+        { name: `${session}/contexts/awaiting_main_choice`, lifespanCount: 5 },
       ],
     };
   }
@@ -62,7 +62,7 @@ export class ChatbotService {
     return {
       fulfillmentText: 'Great! Which cuisine and location?',
       outputContexts: [
-        { name: `${session}/contexts/dine_in_context`, lifespanCount: 2 },
+        { name: `${session}/contexts/dine_in`, lifespanCount: 2 },
       ],
     };
   }
@@ -90,7 +90,7 @@ export class ChatbotService {
       fulfillmentText: `Here are some ${cuisine} restaurants in ${location}: ${names}. Which one?`,
       outputContexts: [
         {
-          name: `${session}/contexts/dine_in_context`,
+          name: `${session}/contexts/dine_in`,
           lifespanCount: 2,
           parameters: { cuisine, location },
         },
@@ -101,7 +101,7 @@ export class ChatbotService {
   private async handleMenuForDine(body: any) {
     const session = body.session;
     const dineCtx = body.queryResult.outputContexts.find(ctx =>
-      ctx.name.endsWith('/contexts/dine_in_context'),
+      ctx.name.endsWith('/contexts/dine_in'),
     );
 
     const { cuisine, location, restaurantname } = dineCtx.parameters;
@@ -143,13 +143,8 @@ export class ChatbotService {
       fulfillmentText: `Here are some items in ${restaurantName}:\n${list}.\nWould you like more details about this restaurant?`,
       outputContexts: [
       {
-        name: `${session}/contexts/dine_in_context`,
+        name: `${session}/contexts/dine_in`,
         lifespanCount: 2,
-        parameters,
-      },
-      {
-        name: `${session}/contexts/await_details_context`,
-        lifespanCount: 1,
         parameters,
       },
       {
@@ -164,11 +159,11 @@ export class ChatbotService {
    async handleRestaurantDetails(body: any) {
     const session = body.session;
     const dineCtx = body.queryResult.outputContexts.find(ctx =>
-      ctx.name.endsWith('/contexts/await_details_context')
+      ctx.name.endsWith('/contexts/await_details')
     );
 
     if (!dineCtx || !dineCtx.parameters.restaurantId) {
-      return { fulfillmentText: `Sorry, I don't know which restaurant you mean. Type "Delivery", "Dine‑in", "Track order/dine in" or "Cancel" to continue.`, 
+      return { fulfillmentText: `Sorry, I don't know which restaurant you mean. Type "Delivery", "Dine-in", "Track order/dine in" or "Cancel" to continue.`, 
         outputContexts: [{
         name: `${session}/contexts/awaiting_main_choice`,
         lifespanCount: 1,
@@ -222,14 +217,13 @@ export class ChatbotService {
       fulfillmentText: speech,
       outputContexts: [
         {
-          name: `${session}/contexts/await_booking_context`,
+          name: `${session}/contexts/await_book_details`,
           lifespanCount: 2,
           parameters: { cuisine, location, restaurantname, restaurantId},
         },
         {
-          name: `${session}/contexts/dine_in_context`,
+          name: `${session}/contexts/new_dine_in`,
           lifespanCount: 2,
-          parameters: { cuisine, location, restaurantname, restaurantId },
         },
       ],
     };
@@ -238,7 +232,7 @@ export class ChatbotService {
   async handleBookDineinPrompt(body: any) {
     const session = body.session;
     const ctx = body.queryResult.outputContexts.find(c =>
-      c.name.endsWith('/contexts/await_booking_context'),
+      c.name.endsWith('/contexts/await_book_details') ||  c.name.endsWith('/contexts/await_details'),
     );
 
     if (!ctx || !ctx.parameters.restaurantId) {
