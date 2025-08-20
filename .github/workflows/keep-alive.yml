@@ -2,8 +2,8 @@ name: Keep Render Backend Awake
 
 on:
   schedule:
-    - cron: '*/10 * * * *' # every 10 minutes
-  workflow_dispatch: # allows manual run from GitHub Actions tab
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
 
 jobs:
   ping:
@@ -12,16 +12,28 @@ jobs:
       - name: Curl backend health endpoint
         run: |
           echo "Pinging backend at $(date)..."
-          RESPONSE=$(curl -s -w "%{http_code}" -o response.json https://zomato-chatbot-backend.onrender.com/chatbot/health)
-          echo "HTTP code: $RESPONSE"
 
-          if [ "$RESPONSE" -eq 200 ]; then
-            echo "Backend is alive!"
-            echo "Response body:"
-            cat response.json
-          else
-            echo "Backend did not return 200. Something may be wrong."
-            echo "Response body (if any):"
-            cat response.json
-            exit 1
-          fi
+          for i in 1 2 3; do
+            RESPONSE=$(curl -s -o - -w "%{http_code}" --fail https://zomato-chatbot-backend.onrender.com/chatbot/health 2>/dev/null || echo "000")
+            STATUS=${RESPONSE: -3}
+            BODY=${RESPONSE::-3}
+
+            echo "Attempt $i - HTTP code: $STATUS"
+
+            if [ "$STATUS" -eq 200 ]; then
+              echo "Backend is alive!"
+              echo "Response body:"
+              echo "$BODY"
+              exit 0
+            fi
+
+            if [ "$i" -lt 3 ]; then
+              echo "Attempt $i failed, retrying in 10s..."
+              sleep 10
+            fi
+          done
+
+          echo "Backend did not respond successfully after 3 attempts."
+          echo "Last response body:"
+          echo "$BODY"
+          exit 1

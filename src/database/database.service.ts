@@ -13,9 +13,9 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false }, 
       family: 4, 
-      max: 10, // adjust based on Render plan + Supabase limits
-      idleTimeoutMillis: 30000, // close idle connections
-      connectionTimeoutMillis: 10000, // timeout on connect
+      max: 10, 
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000, 
     });
 
     try {
