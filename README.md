@@ -107,7 +107,7 @@ npm install
 #### Backend:
 
 ```bash
-next start --watch
+nest start --watch
 ```
 
 #### Frontend:
