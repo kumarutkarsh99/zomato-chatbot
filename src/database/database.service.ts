@@ -1,32 +1,39 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { Client } from 'pg';
+import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnModuleDestroy {
-  private client: Client;
+  private pool: Pool;
 
   async onModuleInit() {
-    this.client = new Client({
+    this.pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false }, 
       family: 4, 
+      max: 10, // adjust based on Render plan + Supabase limits
+      idleTimeoutMillis: 30000, // close idle connections
+      connectionTimeoutMillis: 10000, // timeout on connect
     });
 
     try {
-      await this.client.connect();
+      await this.pool.connect();
       console.log('PostgreSQL (Supabase) Connected');
     } catch (err) {
       console.error('Error connecting to PostgreSQL:', err);
       throw err;
     }
+
+    this.pool.on('error', (err) => {
+      console.error('Unexpected PG error on idle client', err);
+    });
   }
 
   async query(text: string, params?: any[]) {
     try {
-      return await this.client.query(text, params);
+      return await this.pool.query(text, params);
     } catch (err) {
       console.error('Database query error:', err);
       throw err;
@@ -34,14 +41,14 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    if (this.client) {
-      await this.client.end();
+    if (this.pool) {
+      await this.pool.end();
       console.log('PostgreSQL Connection Closed');
     }
   }
 
   async checkConnection() {
-    const res = await this.client.query('SELECT NOW() AS current_time;');
+    const res = await this.pool.query('SELECT NOW() AS current_time;');
     return res.rows[0];
   }
 }
