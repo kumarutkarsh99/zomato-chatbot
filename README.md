@@ -4,7 +4,7 @@
 A smart conversational chatbot built to simulate Zomato-like functionality, focusing on restaurants in **Bengaluru**.  
 Users can interact with the bot to **track orders, book dine-ins, and order food**, all via natural language using **Dialogflow**.
 
-<img width="1889" height="869" alt="image" src="https://github.com/user-attachments/assets/59c1d873-0b40-4765-a721-264ec38acd4c" />
+<img width="1889" height="869" alt="Screenshot 2025-09-17 125748" src="https://github.com/user-attachments/assets/6d76fa3d-56e4-42a3-af8f-7a92e80eceab" />
 
 ## Table of Contents
 1. [Overview](#overview)  
